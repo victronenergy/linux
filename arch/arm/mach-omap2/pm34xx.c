@@ -665,6 +665,9 @@ int __init omap3_pm_init(void)
 	struct clockdomain *neon_clkdm, *mpu_clkdm, *per_clkdm, *wkup_clkdm;
 	int ret;
 
+	if (!cpu_is_omap34xx() || soc_is_am35xx())
+		return -ENODEV;
+
 	if (!omap3_has_io_chain_ctrl())
 		pr_warning("PM: no software I/O chain control; some wakeups may be lost\n");
 
