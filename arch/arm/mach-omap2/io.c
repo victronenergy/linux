@@ -567,6 +567,9 @@ void __init omap_sdrc_init(struct omap_sdrc_params *sdrc_cs0,
 {
 	omap_sram_init();
 
+	if ((sdrc_cs0 == NULL) && (sdrc_cs1 == NULL))
+		return;
+	
 	if (cpu_is_omap24xx() || omap3_has_sdrc()) {
 		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);
 		_omap2_init_reprogram_sdrc();
