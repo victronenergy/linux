@@ -650,12 +650,14 @@ static struct omap_hwmod omap3430es1_dss_core_hwmod = {
 	},
 	.opt_clks	= dss_opt_clks,
 	.opt_clks_cnt = ARRAY_SIZE(dss_opt_clks),
-	.flags		= HWMOD_NO_IDLEST | HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 };
 
 static struct omap_hwmod omap3xxx_dss_core_hwmod = {
 	.name		= "dss_core",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.class		= &omap2_dss_hwmod_class,
 	.main_clk	= "dss1_alwon_fck", /* instead of dss_fck */
 	.sdma_reqs	= omap3xxx_dss_sdma_chs,
@@ -707,7 +709,8 @@ static struct omap_hwmod omap3xxx_dss_dispc_hwmod = {
 			.module_offs = OMAP3430_DSS_MOD,
 		},
 	},
-	.flags		= HWMOD_NO_IDLEST,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
+				HWMOD_INIT_NO_IDLE,
 	.dev_attr	= &omap2_3_dss_dispc_dev_attr
 };
 
@@ -744,7 +747,8 @@ static struct omap_hwmod omap3xxx_dss_dsi1_hwmod = {
 	},
 	.opt_clks	= dss_dsi1_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_dsi1_opt_clks),
-	.flags		= HWMOD_NO_IDLEST,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
+				HWMOD_INIT_NO_IDLE,
 };
 
 static struct omap_hwmod_opt_clk dss_rfbi_opt_clks[] = {
@@ -764,7 +768,8 @@ static struct omap_hwmod omap3xxx_dss_rfbi_hwmod = {
 	},
 	.opt_clks	= dss_rfbi_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_rfbi_opt_clks),
-	.flags		= HWMOD_NO_IDLEST,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
+				HWMOD_INIT_NO_IDLE,
 };
 
 static struct omap_hwmod_opt_clk dss_venc_opt_clks[] = {
@@ -785,7 +790,8 @@ static struct omap_hwmod omap3xxx_dss_venc_hwmod = {
 	},
 	.opt_clks	= dss_venc_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_venc_opt_clks),
-	.flags		= HWMOD_NO_IDLEST,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
+				HWMOD_INIT_NO_IDLE,
 };
 
 /* I2C1 */
@@ -915,7 +921,8 @@ static struct omap_hwmod_opt_clk gpio1_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio1_hwmod = {
 	.name		= "gpio1",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap2_gpio1_irqs,
 	.main_clk	= "gpio1_ick",
 	.opt_clks	= gpio1_opt_clks,
@@ -940,7 +947,8 @@ static struct omap_hwmod_opt_clk gpio2_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio2_hwmod = {
 	.name		= "gpio2",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap2_gpio2_irqs,
 	.main_clk	= "gpio2_ick",
 	.opt_clks	= gpio2_opt_clks,
@@ -965,7 +973,8 @@ static struct omap_hwmod_opt_clk gpio3_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio3_hwmod = {
 	.name		= "gpio3",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap2_gpio3_irqs,
 	.main_clk	= "gpio3_ick",
 	.opt_clks	= gpio3_opt_clks,
@@ -990,7 +999,8 @@ static struct omap_hwmod_opt_clk gpio4_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio4_hwmod = {
 	.name		= "gpio4",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap2_gpio4_irqs,
 	.main_clk	= "gpio4_ick",
 	.opt_clks	= gpio4_opt_clks,
@@ -1020,7 +1030,8 @@ static struct omap_hwmod_opt_clk gpio5_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio5_hwmod = {
 	.name		= "gpio5",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap3xxx_gpio5_irqs,
 	.main_clk	= "gpio5_ick",
 	.opt_clks	= gpio5_opt_clks,
@@ -1050,7 +1061,8 @@ static struct omap_hwmod_opt_clk gpio6_opt_clks[] = {
 
 static struct omap_hwmod omap3xxx_gpio6_hwmod = {
 	.name		= "gpio6",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
+				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
 	.mpu_irqs	= omap3xxx_gpio6_irqs,
 	.main_clk	= "gpio6_ick",
 	.opt_clks	= gpio6_opt_clks,
