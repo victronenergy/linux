@@ -63,6 +63,7 @@
 
 /* Flags for omapX_mux_init */
 #define OMAP_PACKAGE_MASK		0xffff
+#define OMAP_PACKAGE_ZCN		9		/* 491-pin 0.65 */
 #define OMAP_PACKAGE_CBS		8		/* 547-pin 0.40 0.40 */
 #define OMAP_PACKAGE_CBL		7		/* 547-pin 0.40 0.40 */
 #define OMAP_PACKAGE_CBP		6		/* 515-pin 0.40 0.50 */

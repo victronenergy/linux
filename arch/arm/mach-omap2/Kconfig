@@ -136,6 +136,9 @@ config OMAP_PACKAGE_CBL
 config OMAP_PACKAGE_CBS
        bool
 
+config OMAP_PACKAGE_ZCN
+       bool
+
 comment "OMAP Board Type"
 	depends on ARCH_OMAP2PLUS
 
