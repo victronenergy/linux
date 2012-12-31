@@ -382,7 +382,7 @@ config MACH_BPP3
         bool "Victron Energy BPP3"
         depends on ARCH_OMAP3
         default y
-        select OMAP_PACKAGE_CBB
+        select OMAP_PACKAGE_ZCN
 
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
