@@ -57,6 +57,21 @@ static struct emac_platform_data am35xx_emac_pdata = {
 
 static struct mdio_platform_data am35xx_mdio_pdata;
 
+static int __init eth_addr_setup(char *str)
+{
+	int i;
+
+	if (str == NULL)
+		return 0;
+	for (i = 0; i <  ETH_ALEN; i++)
+		am35xx_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
+							(char **)NULL, 16);
+	return 1;
+}
+
+/* Get MAC address from kernel boot parameter ethaddr=AA:BB:CC:DD:EE:FF */
+__setup("ethaddr=", eth_addr_setup);
+
 static int __init omap_davinci_emac_dev_init(struct omap_hwmod *oh,
 		void *pdata, int pdata_len)
 {
