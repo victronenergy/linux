@@ -38,8 +38,6 @@
 #include "common-board-devices.h"
 #include "common.h"
 
-#define MCX_MDIO_FREQUENCY	(1000000)
-
 static struct mtd_partition bpp3_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
