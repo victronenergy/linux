@@ -77,7 +77,7 @@ static struct mtd_partition bpp3_nand_partitions[] = {
 };
 
 #define LED_PWR_PIN		53
-#define PANEL_PWR_PIN		138
+#define PANEL_PWR_PIN		42
 #define LCD_PANEL_PON_PIN	139
 
 static int bpp3_panel_enable_lcd(struct omap_dss_device *dssdev)
