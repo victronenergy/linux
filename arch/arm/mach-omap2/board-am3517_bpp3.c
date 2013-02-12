@@ -557,12 +557,7 @@ static inline void bpp3_serial_init(void)
 
 static struct gpio bpp3_gpio_export[] = {
 	{
-		.gpio = 42,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "relay",
-	},
-	{
-		.gpio = 54,
+		.gpio = 35,
 		.flags = GPIOF_OUT_INIT_LOW,
 		.label = "buzzer",
 	},
@@ -585,6 +580,11 @@ static struct gpio bpp3_gpio_export[] = {
 		.gpio = 155,
 		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "mk2_reset",
+	},
+	{
+		.gpio = 182,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "relay",
 	},
 };
 
