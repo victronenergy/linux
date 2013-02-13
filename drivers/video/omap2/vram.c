@@ -249,14 +249,6 @@ int omap_vram_reserve(unsigned long paddr, size_t size)
 }
 EXPORT_SYMBOL(omap_vram_reserve);
 
-static int fbskip;
-static int __init early_parse_fbskip(char *p)
-{
-	fbskip = 1;
-	return 0;
-}
-early_param("fbskip", early_parse_fbskip);
-
 static int _omap_vram_alloc(unsigned pages, unsigned long *paddr)
 {
 	struct vram_region *rm;
