@@ -93,6 +93,18 @@ void __init am35xx_emac_init(unsigned long mdio_bus_freq, u8 rmii_en)
 	struct omap_hwmod *oh;
 	u32 v;
 	int ret;
+	u32 mac_lo, mac_hi;
+
+	/* use the TI-provided MAC address fused in the AM35xx */
+	mac_lo = omap_ctrl_readl(AM35XX_CONTROL_FUSE_EMAC_LSB);
+	mac_hi = omap_ctrl_readl(AM35XX_CONTROL_FUSE_EMAC_MSB);
+
+	am35xx_emac_pdata.mac_addr[0] = (u_int8_t)((mac_hi & 0xFF0000) >> 16);
+	am35xx_emac_pdata.mac_addr[1] = (u_int8_t)((mac_hi & 0xFF00) >> 8);
+	am35xx_emac_pdata.mac_addr[2] = (u_int8_t)((mac_hi & 0xFF) >> 0);
+	am35xx_emac_pdata.mac_addr[3] = (u_int8_t)((mac_lo & 0xFF0000) >> 16);
+	am35xx_emac_pdata.mac_addr[4] = (u_int8_t)((mac_lo & 0xFF00) >> 8);
+	am35xx_emac_pdata.mac_addr[5] = (u_int8_t)((mac_lo & 0xFF) >> 0);
 
 	oh = omap_hwmod_lookup("davinci_mdio");
 	if (!oh) {
