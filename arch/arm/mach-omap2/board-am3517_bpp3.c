@@ -8,6 +8,8 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/backlight.h>
+#include <linux/fb.h>
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/mtd/partitions.h>
@@ -25,6 +27,7 @@
 #include <asm/mach/arch.h>
 
 #include <plat/common.h>
+#include <plat/dmtimer.h>
 #include <video/omapdss.h>
 #include <video/omap-panel-generic-dpi.h>
 #include <plat/usb.h>
@@ -37,6 +40,17 @@
 #include "hsmmc.h"
 #include "common-board-devices.h"
 #include "common.h"
+
+struct gptimer_pwm_dev {
+	int id;
+	struct omap_dm_timer *timer;
+	u32 input_freq;
+	u32 tldr;
+	u32 tmar;
+	u32 num_settings;
+	u32 current_val;
+	u32 set;
+};
 
 static struct mtd_partition bpp3_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
@@ -74,30 +88,8 @@ static struct mtd_partition bpp3_nand_partitions[] = {
 	},
 };
 
-#define LED_PWR_PIN		53
-#define PANEL_PWR_PIN		42
-#define LCD_PANEL_PON_PIN	139
-
-static int bpp3_panel_enable_lcd(struct omap_dss_device *dssdev)
-{
-	gpio_set_value(LCD_PANEL_PON_PIN, 1);
-	gpio_set_value(PANEL_PWR_PIN, 0);
-	gpio_set_value(LED_PWR_PIN, 1);
-
-	return 0;
-}
-
-static void bpp3_panel_disable_lcd(struct omap_dss_device *dssdev)
-{
-	gpio_set_value(LED_PWR_PIN, 0);
-	gpio_set_value(PANEL_PWR_PIN, 1);
-	gpio_set_value(LCD_PANEL_PON_PIN, 0);
-}
-
 static struct panel_generic_dpi_data lcd_panel = {
 	.name			= "ortustech_com43h4m10xtc",
-	.platform_enable	= bpp3_panel_enable_lcd,
-	.platform_disable	= bpp3_panel_disable_lcd,
 };
 
 static struct omap_dss_device bpp3_lcd_device = {
@@ -152,42 +144,173 @@ static struct platform_device bpp3_display_device = {
 	},
 };
 
-static struct gpio bpp3_dss_gpios[] __initdata = {
-	{
-		.gpio = LED_PWR_PIN,
-		.flags = GPIOF_OUT_INIT_HIGH,
-		.label = "backlight_power",
-	},
-	{
-		.gpio = LCD_PANEL_PON_PIN,
-		.flags = GPIOF_OUT_INIT_HIGH,
-		.label = "lcd_disable_vdd",
-	},
-	{
-		.gpio = PANEL_PWR_PIN,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "lcd_vdd_disable_pon",
-	},
-};
-
 static void __init bpp3_display_init(void)
 {
 	int r;
 
-	omap_mux_init_gpio(PANEL_PWR_PIN, OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(LCD_PANEL_PON_PIN, OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(LED_PWR_PIN, OMAP_PIN_OUTPUT);
-
-	r = gpio_request_array(bpp3_dss_gpios, ARRAY_SIZE(bpp3_dss_gpios));
-	if (r) {
-		pr_err("failed to get DSS control GPIOs\n");
-		return;
-	}
-
 	r = omap_display_init(&bpp3_dss_data);
 	if (r) {
 		pr_err("Failed to register DSS device\n");
-		gpio_free_array(bpp3_dss_gpios, ARRAY_SIZE(bpp3_dss_gpios));
+	}
+}
+
+static struct gptimer_pwm_dev gptimer9 = {
+	.id = 9,
+};
+
+static void __init gptimer9_pwm_set_frequency(struct gptimer_pwm_dev *pd)
+{
+	int frequency = 1024;
+
+	if (frequency > (pd->input_freq / 2))
+		frequency = pd->input_freq / 2;
+
+	pd->tldr = 0xFFFFFFFF - (pd->input_freq / frequency - 1);
+	omap_dm_timer_set_load(pd->timer, 1, pd->tldr);
+	pd->num_settings = 0xFFFFFFFE - pd->tldr;
+}
+
+static int gptimer9_pwm_set_duty_cycle(u32 duty_cycle)
+{
+	u32 new_tmar;
+
+	if (gptimer9.set != 1) {
+		printk("%s: pwm_init fail or not executed.\n", __FUNCTION__);
+		return -EINVAL;
+	}
+
+	if (duty_cycle > 100)
+		return -EINVAL;
+
+	if (duty_cycle == 0) {
+		if (gptimer9.current_val != 0) {
+			omap_dm_timer_stop(gptimer9.timer);
+			gptimer9.current_val = 0;
+		}
+		return 0;
+	}
+
+	new_tmar = duty_cycle * gptimer9.num_settings / 100;
+
+	if (new_tmar < 1)
+		new_tmar = 1;
+	else if (new_tmar > gptimer9.num_settings)
+		new_tmar = gptimer9.num_settings;
+
+	gptimer9.tmar = gptimer9.tldr + new_tmar;
+	omap_dm_timer_set_match(gptimer9.timer, 1, gptimer9.tmar);
+
+	if (gptimer9.current_val == 0)
+		omap_dm_timer_start(gptimer9.timer);
+
+	gptimer9.current_val = duty_cycle;
+
+	return 0;
+}
+
+
+static void gptimer9_pwm_timer_cleanup(void)
+{
+	printk(KERN_INFO "pwm: gptimer9_pwm_timer_cleanup\n");
+
+	if (gptimer9.timer) {
+		omap_dm_timer_free(gptimer9.timer);
+		gptimer9.timer = NULL;
+		gptimer9.set = 0;
+	}
+}
+
+static int __init gptimer9_pwm_timer_init(void)
+{
+	struct clk *fclk;
+
+	printk(KERN_INFO "pwm: omap_dm_timer_request_specific\n");
+	gptimer9.timer = omap_dm_timer_request_specific(gptimer9.id);
+
+	if (!gptimer9.timer)
+		goto timer_init_fail;
+
+	printk(KERN_INFO "pwm: omap_dm_timer_set_pwm\n");
+	omap_dm_timer_set_pwm(gptimer9.timer,
+				0,	/* ~SCPWM low when off */
+				1,	/* PT pulse toggle modulation */
+				OMAP_TIMER_TRIGGER_OVERFLOW_AND_COMPARE);
+
+	if (omap_dm_timer_set_source(gptimer9.timer, OMAP_TIMER_SRC_SYS_CLK))
+		goto timer_init_fail;
+
+	/* set the clock frequency */
+	fclk = omap_dm_timer_get_fclk(gptimer9.timer);
+	gptimer9.input_freq = clk_get_rate(fclk);
+	gptimer9_pwm_set_frequency(&gptimer9);
+	gptimer9.set = 1;
+
+	return 0;
+
+timer_init_fail:
+	gptimer9_pwm_timer_cleanup();
+	return -1;
+}
+
+int __init gptimer9_pwm_init(void)
+{
+	if (gptimer9_pwm_timer_init()) {
+		gptimer9_pwm_timer_cleanup();
+		return -1;
+	}
+
+	return 0;
+}
+
+static int backlight_set_status(struct backlight_device *bl)
+{
+	int level;
+
+	if (bl->props.fb_blank == FB_BLANK_UNBLANK &&
+		bl->props.power == FB_BLANK_UNBLANK)
+		level = bl->props.brightness;
+	else
+		level = 0;
+
+	return gptimer9_pwm_set_duty_cycle(level);
+}
+
+static int backlight_get_brightness(struct backlight_device *bl)
+{
+	if (bl->props.fb_blank == FB_BLANK_UNBLANK &&
+			bl->props.power == FB_BLANK_UNBLANK)
+		return bl->props.brightness;
+
+	return 0;
+}
+
+static const struct backlight_ops backlight_ops = {
+	.get_brightness	= backlight_get_brightness,
+	.update_status	= backlight_set_status,
+};
+
+static struct backlight_properties __initdata backlight_props = {
+	.type		= BACKLIGHT_RAW,
+	.max_brightness	= 100,
+	.brightness	= 100,
+	.power		= FB_BLANK_UNBLANK,
+	.fb_blank	= FB_BLANK_UNBLANK,
+};
+
+static void __init backlight_init(void)
+{
+	struct backlight_device *backlight;
+
+	backlight = backlight_device_register("bpp3-bl", NULL, NULL,
+					&backlight_ops, &backlight_props);
+	if (IS_ERR(backlight)) {
+		printk(KERN_ERR "backlight error %ld\n", PTR_ERR(backlight));
+		return;
+	}
+
+	if (!gptimer9_pwm_init()) {
+		gptimer9_pwm_set_duty_cycle(backlight_props.brightness);
+		omap_mux_init_signal("gpmc_ncs2", OMAP_MUX_MODE2);
 	}
 }
 
@@ -651,6 +774,12 @@ static void __init bpp3_init(void)
 	bpp3_export_gpio();
 }
 
+static void __init init_late(void)
+{
+	backlight_init();
+	am35xx_init_late();
+}
+
 MACHINE_START(AM3517_BPP3, "Victron BPP3")
 	.atag_offset	= 0x100,
 	.reserve	= omap_reserve,
@@ -659,7 +788,7 @@ MACHINE_START(AM3517_BPP3, "Victron BPP3")
 	.init_irq	= omap3_init_irq,
 	.handle_irq	= omap3_intc_handle_irq,
 	.init_machine	= bpp3_init,
-	.init_late	= am35xx_init_late,
+	.init_late	= init_late,
 	.timer		= &omap3_timer,
 	.restart	= omap_prcm_restart,
 MACHINE_END
