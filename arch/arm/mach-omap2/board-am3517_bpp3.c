@@ -633,6 +633,19 @@ static struct omap_device_pad uart2_pads[] __initdata = {
 	},
 };
 
+static struct omap_device_pad uart3_pads[] __initdata = {
+	{
+		.name	= "uart3_tx_irtx.uart3_tx_irtx",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart3_rx_irrx.uart3_rx_irrx",
+		.flags	= OMAP_DEVICE_PAD_REMUX | OMAP_DEVICE_PAD_WAKEUP,
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+		.idle	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+	},
+};
+
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_ULPI,
 	.mode			= MUSB_PERIPHERAL,
@@ -674,6 +687,11 @@ static inline void bpp3_serial_init(void)
 	bdata.pads = uart2_pads;
 	bdata.pads_cnt = ARRAY_SIZE(uart2_pads);
 	omap_serial_init_port(&bdata, NULL);
+	
+	bdata.id = 2;
+	bdata.pads = uart3_pads;
+	bdata.pads_cnt = ARRAY_SIZE(uart3_pads);
+	omap_serial_init_port(&bdata, NULL);	
 }
 
 static struct gpio bpp3_gpio_export[] = {
