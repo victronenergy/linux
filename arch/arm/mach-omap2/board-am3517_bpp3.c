@@ -725,6 +725,16 @@ static struct gpio bpp3_gpio_export[] = {
 		.flags = GPIOF_OUT_INIT_LOW,
 		.label = "relay",
 	},
+	{
+		.gpio = 116,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "mk2_power",
+	},	
+	{
+		.gpio = 117,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "can_power",
+	},	
 };
 
 static void __init bpp3_export_gpio(void)
