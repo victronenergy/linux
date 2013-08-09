@@ -368,6 +368,7 @@ static struct gpio_keys_button bpp3_gpio_buttons[] = {
 
 static struct gpio_keys_platform_data bpp3_gpio_key_info = {
 	.buttons	= bpp3_gpio_buttons,
+	.rep		= 1,
 	.nbuttons	= ARRAY_SIZE(bpp3_gpio_buttons),
 };
 
