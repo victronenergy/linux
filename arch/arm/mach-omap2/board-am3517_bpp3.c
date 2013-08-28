@@ -688,11 +688,11 @@ static inline void bpp3_serial_init(void)
 	bdata.pads = uart2_pads;
 	bdata.pads_cnt = ARRAY_SIZE(uart2_pads);
 	omap_serial_init_port(&bdata, NULL);
-	
+
 	bdata.id = 2;
 	bdata.pads = uart3_pads;
 	bdata.pads_cnt = ARRAY_SIZE(uart3_pads);
-	omap_serial_init_port(&bdata, NULL);	
+	omap_serial_init_port(&bdata, NULL);
 }
 
 static struct gpio bpp3_gpio_export[] = {
@@ -711,6 +711,16 @@ static struct gpio bpp3_gpio_export[] = {
 		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "power",
 	},
+        {
+                .gpio = 116,
+                .flags = GPIOF_OUT_INIT_LOW,
+                .label = "mk2_power",
+        },
+        {
+                .gpio = 117,
+                .flags = GPIOF_OUT_INIT_LOW,
+                .label = "can_power",
+        },
 	{
 		.gpio = 153,
 		.flags = GPIOF_OUT_INIT_LOW,
@@ -726,16 +736,6 @@ static struct gpio bpp3_gpio_export[] = {
 		.flags = GPIOF_OUT_INIT_LOW,
 		.label = "relay",
 	},
-	{
-		.gpio = 116,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "mk2_power",
-	},	
-	{
-		.gpio = 117,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "can_power",
-	},	
 };
 
 static void __init bpp3_export_gpio(void)
