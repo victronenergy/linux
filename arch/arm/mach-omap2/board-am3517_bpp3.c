@@ -723,7 +723,7 @@ static struct gpio bpp3_gpio_export[] = {
         },
 	{
 		.gpio = 153,
-		.flags = GPIOF_OUT_INIT_LOW,
+		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "vebus_standby",
 	},
 	{
