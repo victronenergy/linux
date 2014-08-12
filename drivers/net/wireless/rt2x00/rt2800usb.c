@@ -1138,6 +1138,8 @@ static struct usb_device_id rt2800usb_device_table[] = {
 	{ USB_DEVICE(0x0b05, 0x179d) },
 	/* Cisco */
 	{ USB_DEVICE(0x167b, 0x4001) },
+	/* D-link */
+	{ USB_DEVICE(0x2001, 0x3C20) },
 	/* EnGenius */
 	{ USB_DEVICE(0x1740, 0x9801) },
 	/* I-O DATA */
