@@ -52,7 +52,7 @@ struct gptimer_pwm_dev {
 	u32 set;
 };
 
-static struct mtd_partition bpp3_nand_partitions[] = {
+static struct mtd_partition ccgx_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
 		.name		= "SPL",
@@ -92,7 +92,7 @@ static struct panel_generic_dpi_data lcd_panel = {
 	.name			= "ortustech_com43h4m10xtc",
 };
 
-static struct omap_dss_device bpp3_lcd_device = {
+static struct omap_dss_device ccgx_lcd_device = {
 	.type			= OMAP_DISPLAY_TYPE_DPI,
 	.name			= "lcd",
 	.driver_name		= "generic_dpi_panel",
@@ -100,55 +100,55 @@ static struct omap_dss_device bpp3_lcd_device = {
 	.phy.dpi.data_lines	= 24,
 };
 
-static struct omap_dss_device *bpp3_dss_devices[] = {
-	&bpp3_lcd_device,
+static struct omap_dss_device *ccgx_dss_devices[] = {
+	&ccgx_lcd_device,
 };
 
-static struct omap_dss_board_info bpp3_dss_data = {
-	.num_devices	= ARRAY_SIZE(bpp3_dss_devices),
-	.devices	= bpp3_dss_devices,
-	.default_device	= &bpp3_lcd_device,
+static struct omap_dss_board_info ccgx_dss_data = {
+	.num_devices	= ARRAY_SIZE(ccgx_dss_devices),
+	.devices	= ccgx_dss_devices,
+	.default_device	= &ccgx_lcd_device,
 };
 
 /*
  * use fake regulator for vdds_dsi as we can't find this pin inside
  * AM3517 datasheet.
  */
-static struct regulator_consumer_supply bpp3_vdds_dsi_supply[] = {
+static struct regulator_consumer_supply ccgx_vdds_dsi_supply[] = {
 	REGULATOR_SUPPLY("vdds_dsi", "omapdss"),
 	REGULATOR_SUPPLY("vdds_dsi", "omapdss_dsi.0"),
 };
 
-static struct regulator_init_data bpp3_vdds_dsi = {
+static struct regulator_init_data ccgx_vdds_dsi = {
 	.constraints		= {
 		.valid_modes_mask	= REGULATOR_MODE_NORMAL,
 		.always_on		= 1,
 	},
-	.num_consumer_supplies	= ARRAY_SIZE(bpp3_vdds_dsi_supply),
-	.consumer_supplies	= bpp3_vdds_dsi_supply,
+	.num_consumer_supplies	= ARRAY_SIZE(ccgx_vdds_dsi_supply),
+	.consumer_supplies	= ccgx_vdds_dsi_supply,
 };
 
-static struct fixed_voltage_config bpp3_display = {
+static struct fixed_voltage_config ccgx_display = {
 	.supply_name		= "display",
 	.microvolts		= 1800000,
 	.gpio			= -EINVAL,
 	.enabled_at_boot	= 1,
-	.init_data		= &bpp3_vdds_dsi,
+	.init_data		= &ccgx_vdds_dsi,
 };
 
-static struct platform_device bpp3_display_device = {
+static struct platform_device ccgx_display_device = {
 	.name		= "reg-fixed-voltage",
 	.id		= 0,
 	.dev = {
-		.platform_data	= &bpp3_display,
+		.platform_data	= &ccgx_display,
 	},
 };
 
-static void __init bpp3_display_init(void)
+static void __init ccgx_display_init(void)
 {
 	int r;
 
-	r = omap_display_init(&bpp3_dss_data);
+	r = omap_display_init(&ccgx_dss_data);
 	if (r) {
 		pr_err("Failed to register DSS device\n");
 	}
@@ -314,7 +314,7 @@ static void __init backlight_init(void)
 	}
 }
 
-static struct gpio_keys_button bpp3_gpio_buttons[] = {
+static struct gpio_keys_button ccgx_gpio_buttons[] = {
 	{
 		.code		= KEY_UP,
 		.gpio		= 28,
@@ -366,17 +366,17 @@ static struct gpio_keys_button bpp3_gpio_buttons[] = {
 	},
 };
 
-static struct gpio_keys_platform_data bpp3_gpio_key_info = {
-	.buttons	= bpp3_gpio_buttons,
+static struct gpio_keys_platform_data ccgx_gpio_key_info = {
+	.buttons	= ccgx_gpio_buttons,
 	.rep		= 1,
-	.nbuttons	= ARRAY_SIZE(bpp3_gpio_buttons),
+	.nbuttons	= ARRAY_SIZE(ccgx_gpio_buttons),
 };
 
-static struct platform_device bpp3_keys_gpio = {
+static struct platform_device ccgx_keys_gpio = {
 	.name	= "gpio-keys",
 	.id	= -1,
 	.dev	= {
-		.platform_data  = &bpp3_gpio_key_info,
+		.platform_data  = &ccgx_gpio_key_info,
 	},
 };
 
@@ -384,8 +384,8 @@ static void set_gpio_key_mux(void)
 {
 	int n;
 
-	for (n = 0; n < ARRAY_SIZE(bpp3_gpio_buttons); n++)
-		omap_mux_init_gpio(bpp3_gpio_buttons[n].gpio, OMAP_PIN_INPUT);
+	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_buttons); n++)
+		omap_mux_init_gpio(ccgx_gpio_buttons[n].gpio, OMAP_PIN_INPUT);
 }
 
 /* TPS65023 specific initialization */
@@ -440,7 +440,7 @@ static struct regulator_consumer_supply am3517_ldo2_supplies[] = {
 	},
 };
 
-static struct regulator_init_data bpp3_regulator_data[] = {
+static struct regulator_init_data ccgx_regulator_data[] = {
 	/* DCDC1 */
 	{
 		.constraints = {
@@ -508,29 +508,29 @@ static struct regulator_init_data bpp3_regulator_data[] = {
 	},
 };
 
-static struct i2c_board_info __initdata bpp3_i2c1_devices[] = {
+static struct i2c_board_info __initdata ccgx_i2c1_devices[] = {
 	{
 		I2C_BOARD_INFO("tps65023", 0x48),
 		.flags = I2C_CLIENT_WAKE,
-		.platform_data = &bpp3_regulator_data[0],
+		.platform_data = &ccgx_regulator_data[0],
 	},
 	{
 		I2C_BOARD_INFO("24c02", 0x50),
 	},
 };
 
-static struct i2c_board_info __initdata bpp3_i2c3_devices[] = {
+static struct i2c_board_info __initdata ccgx_i2c3_devices[] = {
 	{
 		I2C_BOARD_INFO("ds1307", 0x68),
 	},
 };
 
-static void __init bpp3_i2c_init(void)
+static void __init ccgx_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 400, bpp3_i2c1_devices,
-			ARRAY_SIZE(bpp3_i2c1_devices));
-	omap_register_i2c_bus(3, 400, bpp3_i2c3_devices,
-			ARRAY_SIZE(bpp3_i2c3_devices));
+	omap_register_i2c_bus(1, 400, ccgx_i2c1_devices,
+			ARRAY_SIZE(ccgx_i2c1_devices));
+	omap_register_i2c_bus(3, 400, ccgx_i2c3_devices,
+			ARRAY_SIZE(ccgx_i2c3_devices));
 }
 
 
@@ -602,9 +602,9 @@ static void am3517_init_hecc(void)
 	platform_device_register(&am3517_hecc_device);
 }
 
-static struct platform_device *bpp3_devices[] __initdata = {
-	&bpp3_display_device,
-	&bpp3_keys_gpio,
+static struct platform_device *ccgx_devices[] __initdata = {
+	&ccgx_display_device,
+	&ccgx_keys_gpio,
 };
 
 /* uart1 -> console, uart2 -> mk2, no flow control */
@@ -673,7 +673,7 @@ static __init void am3517_musb_init(void)
 	usb_musb_init(&musb_board_data);
 }
 
-static inline void bpp3_serial_init(void)
+static inline void ccgx_serial_init(void)
 {
 	struct omap_board_data bdata;
 
@@ -695,7 +695,7 @@ static inline void bpp3_serial_init(void)
 	omap_serial_init_port(&bdata, NULL);
 }
 
-static struct gpio bpp3_gpio_export[] = {
+static struct gpio ccgx_gpio_export[] = {
 	{
 		.gpio = 35,
 		.flags = GPIOF_OUT_INIT_LOW,
@@ -738,30 +738,30 @@ static struct gpio bpp3_gpio_export[] = {
 	},
 };
 
-static void __init bpp3_export_gpio(void)
+static void __init ccgx_export_gpio(void)
 {
 	int n, r;
 
-	for (n = 0; n < ARRAY_SIZE(bpp3_gpio_export); n++)
-		omap_mux_init_gpio(bpp3_gpio_export[n].gpio, OMAP_PIN_OUTPUT);
+	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++)
+		omap_mux_init_gpio(ccgx_gpio_export[n].gpio, OMAP_PIN_OUTPUT);
 
-	r = gpio_request_array(bpp3_gpio_export, ARRAY_SIZE(bpp3_gpio_export));
+	r = gpio_request_array(ccgx_gpio_export, ARRAY_SIZE(ccgx_gpio_export));
 	if (r) {
 		printk(KERN_WARNING "failed to request export gpio\n");
 		return;
 	}
 
-	for (n = 0; n < ARRAY_SIZE(bpp3_gpio_export); n++)
-		if (gpio_export(bpp3_gpio_export[n].gpio, 0))
+	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++)
+		if (gpio_export(ccgx_gpio_export[n].gpio, 0))
 			printk(KERN_WARNING "failed to export gpio %d\n",
-					bpp3_gpio_export[n].gpio);
+					ccgx_gpio_export[n].gpio);
 }
 
-static void __init bpp3_init(void)
+static void __init ccgx_init(void)
 {
 	omap3_mux_init(board_mux, OMAP_PACKAGE_ZCN);
 	set_gpio_key_mux();
-	bpp3_i2c_init();
+	ccgx_i2c_init();
 
 	/*
 	 * Keep the left button high. If this is not done the board will
@@ -772,11 +772,11 @@ static void __init bpp3_init(void)
 	omap_mux_init_gpio(26, OMAP_PIN_INPUT_PULLUP);
 	gpio_free(26);
 
-	platform_add_devices(bpp3_devices, ARRAY_SIZE(bpp3_devices));
-	bpp3_serial_init();
+	platform_add_devices(ccgx_devices, ARRAY_SIZE(ccgx_devices));
+	ccgx_serial_init();
 	omap_sdrc_init(NULL, NULL);
 
-	bpp3_display_init();
+	ccgx_display_init();
 
 	/* CAN */
 	am3517_init_hecc();
@@ -786,8 +786,8 @@ static void __init bpp3_init(void)
 	usbhs_init(&usbhs_bdata);
 
 	/* NAND */
-	omap_nand_flash_init(NAND_BUSWIDTH_16, bpp3_nand_partitions,
-			     ARRAY_SIZE(bpp3_nand_partitions));
+	omap_nand_flash_init(NAND_BUSWIDTH_16, ccgx_nand_partitions,
+			     ARRAY_SIZE(ccgx_nand_partitions));
 
 	/* Ethernet */
 	am35xx_emac_init(AM35XX_DEFAULT_MDIO_FREQUENCY, 1);
@@ -800,7 +800,7 @@ static void __init bpp3_init(void)
 	/* USB Peripheral */
 	am3517_musb_init();
 
-	bpp3_export_gpio();
+	ccgx_export_gpio();
 }
 
 static void __init init_late(void)
@@ -809,14 +809,14 @@ static void __init init_late(void)
 	am35xx_init_late();
 }
 
-MACHINE_START(AM3517_BPP3, "Victron BPP3")
+MACHINE_START(AM3517_CCGX, "Victron BPP3")
 	.atag_offset	= 0x100,
 	.reserve	= omap_reserve,
 	.map_io		= omap3_map_io,
 	.init_early	= am35xx_init_early,
 	.init_irq	= omap3_init_irq,
 	.handle_irq	= omap3_intc_handle_irq,
-	.init_machine	= bpp3_init,
+	.init_machine	= ccgx_init,
 	.init_late	= init_late,
 	.timer		= &omap3_timer,
 	.restart	= omap_prcm_restart,

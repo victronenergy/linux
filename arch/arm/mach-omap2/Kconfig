@@ -378,8 +378,8 @@ config MACH_PCM049
 	default y
 	select OMAP_PACKAGE_CBS
 
-config MACH_BPP3
-        bool "Victron Energy BPP3"
+config MACH_CCGX
+        bool "Victron Energy CCGX"
         depends on ARCH_OMAP3
         default y
         select OMAP_PACKAGE_ZCN
