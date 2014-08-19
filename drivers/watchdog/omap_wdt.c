@@ -223,13 +223,13 @@ static long omap_wdt_ioctl(struct file *file, unsigned int cmd,
 		if (cpu_is_omap16xx())
 			return put_user(__raw_readw(ARM_SYSST),
 					(int __user *)arg);
-#endif
-#ifdef CONFIG_ARCH_OMAP2PLUS
-		if (cpu_is_omap24xx())
-			return put_user(omap_prcm_get_reset_sources(),
-					(int __user *)arg);
-#endif
 		return put_user(0, (int __user *)arg);
+#elif CONFIG_ARCH_OMAP2PLUS
+		return put_user(omap_prcm_get_reset_sources(),
+				(int __user *)arg);
+#else
+		return put_user(0, (int __user *)arg);
+#endif
 	case WDIOC_KEEPALIVE:
 		spin_lock(&wdt_lock);
 		omap_wdt_ping(wdev);
