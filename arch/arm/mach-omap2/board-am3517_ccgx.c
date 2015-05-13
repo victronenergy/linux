@@ -564,6 +564,31 @@ static struct omap_board_mux board_mux[] __initdata = {
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
 };
 
+#define CANBUS_ENABLE_GPIO		117
+static void hecc_phy_control(int on)
+{
+	int r;
+
+	if (on) {
+		printk("turning CAN driver on\n");
+		r = gpio_request(CANBUS_ENABLE_GPIO, "can_enable");
+		if (r)
+			goto trouble;
+		if (gpio_direction_output(CANBUS_ENABLE_GPIO, 1))
+			goto trouble;
+	} else {
+		printk("turning CAN driver off\n");
+		if (gpio_direction_output(CANBUS_ENABLE_GPIO, 0))
+			goto trouble;
+		gpio_free(CANBUS_ENABLE_GPIO);
+	}
+
+	return;
+
+trouble:
+	printk(KERN_ERR "failed to control CAN_power (%d)\n", on);
+}
+
 static struct resource am3517_hecc_resources[] = {
 	{
 		.start	= AM35XX_IPSS_HECC_BASE,
@@ -582,6 +607,7 @@ static struct ti_hecc_platform_data am3517_hecc_pdata = {
 	.mbx_offset		= AM35XX_HECC_MBOX_OFFSET,
 	.int_line		= AM35XX_HECC_INT_LINE,
 	.version		= AM35XX_HECC_VERSION,
+	.transceiver_switch	= hecc_phy_control,
 };
 
 static struct platform_device am3517_hecc_device = {
@@ -598,6 +624,7 @@ static void am3517_init_hecc(void)
 {
 	omap_mux_init_signal("hecc1_txd", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
 	omap_mux_init_signal("hecc1_rxd", OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
+	omap_mux_init_gpio(CANBUS_ENABLE_GPIO, OMAP_PIN_OUTPUT);
 
 	platform_device_register(&am3517_hecc_device);
 }
@@ -715,11 +742,6 @@ static struct gpio ccgx_gpio_export[] = {
 		.gpio = 116,
 		.flags = GPIOF_OUT_INIT_LOW,
 		.label = "mk2_power",
-	},
-	{
-		.gpio = 117,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "can_power",
 	},
 	{
 		.gpio = 153,
