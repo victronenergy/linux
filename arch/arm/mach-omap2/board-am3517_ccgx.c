@@ -700,6 +700,9 @@ static __init void am3517_musb_init(void)
 	usb_musb_init(&musb_board_data);
 }
 
+/* Galvanication isolation */
+#define MK2_ISOLATOR_POWER_GPIO		116
+
 static inline void ccgx_serial_init(void)
 {
 	struct omap_board_data bdata;
@@ -714,6 +717,9 @@ static inline void ccgx_serial_init(void)
 	bdata.id = 1;
 	bdata.pads = uart2_pads;
 	bdata.pads_cnt = ARRAY_SIZE(uart2_pads);
+	gpio_request(MK2_ISOLATOR_POWER_GPIO, "mk2_isolation");
+	omap_mux_init_gpio(MK2_ISOLATOR_POWER_GPIO, OMAP_PIN_OUTPUT);
+	gpio_direction_output(MK2_ISOLATOR_POWER_GPIO, 1);
 	omap_serial_init_port(&bdata, NULL);
 
 	bdata.id = 2;
@@ -737,11 +743,6 @@ static struct gpio ccgx_gpio_export[] = {
 		.gpio = 104,
 		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "power",
-	},
-	{
-		.gpio = 116,
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "mk2_power",
 	},
 	{
 		.gpio = 153,
