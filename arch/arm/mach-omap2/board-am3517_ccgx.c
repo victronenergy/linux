@@ -666,7 +666,7 @@ static __init void am3517_musb_init(void)
 	/* USB2.0 PHY reference clock is 13 MHz */
 	devconf2 &= ~(CONF2_REFFREQ | CONF2_OTGMODE | CONF2_PHY_GPIOMODE);
 	devconf2 |=  CONF2_REFFREQ_13MHZ | CONF2_SESENDEN | CONF2_VBDTCTEN
-		        | CONF2_DATPOL;
+			| CONF2_DATPOL;
 
 	omap_ctrl_writel(devconf2, AM35XX_CONTROL_DEVCONF2);
 
@@ -711,16 +711,16 @@ static struct gpio ccgx_gpio_export[] = {
 		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "power",
 	},
-        {
-                .gpio = 116,
-                .flags = GPIOF_OUT_INIT_LOW,
-                .label = "mk2_power",
-        },
-        {
-                .gpio = 117,
-                .flags = GPIOF_OUT_INIT_LOW,
-                .label = "can_power",
-        },
+	{
+		.gpio = 116,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "mk2_power",
+	},
+	{
+		.gpio = 117,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "can_power",
+	},
 	{
 		.gpio = 153,
 		.flags = GPIOF_OUT_INIT_HIGH,
