@@ -1,0 +1,264 @@
+#include "am3517.dtsi"
+
+/ {
+	model = "Technexion TAM3517 SOM";
+	compatible = "ti,tam3517", "ti,am3517", "ti,omap3";
+
+	cpus {
+		cpu@0 {
+			cpu0-supply = <&vdd_mpu>;
+			operating-points = <
+				/* kHz    uV */
+				125000  1200000
+				250000  1200000
+				500000  1200000
+				550000  1200000
+				600000  1200000
+			>;
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>; /* 256 MB */
+	};
+
+	hsusb1_power: hsusb1_power_reg {
+		compatible = "regulator-fixed";
+		regulator-name = "hsusb1_vbus";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	/*
+	 * http://www.ti.com/lit/er/sprz306e/sprz306e.pdf page 42
+	 *
+	 * HSUSB Interoperability Issue with SMSC USB3320 PHY
+	 * Revision(s) Affected 1.1 and earlier
+	 * Details
+	 *   After suspend sequence, USB3320 USB PHY goes correctly in
+	 *   low-power mode:
+	 *    - DP Line goes High and DM line remains Low (J state)
+
+	 *    - Rbias Voltage = 0 V Whereas OMAP HOST controller exit
+	 *      from suspend mode (while it is expected to keep in
+	 *      low power mode). OMAP Host state (exited from low
+	 *      power mode) is inconsistent with PHY state (low power
+	 *      mode) resulting in a lockup situation.
+	 *   Resuming the port has no effect as HOST controller has
+	 *   already exited from low-power mode.
+	 * Root cause:
+	 *   Delay in assertion of DIR causes USBHOST ULPI interface
+	 *   to exit ULPI Low Power mode. USB3320 USB PHY assert DIR
+	 *   signal 3 clock cycle after STP signal is de-asserted.
+	 * Workaround(s)
+	 *   There is no workaround
+	 *
+	 * The tam3517 has a SMSC USB3320 PHY connected, to make it
+	 * work usbcore.autosuspend=-1 is needed as linux boot args
+	 */
+	hsusb1_phy: hsusb1_phy {
+		compatible = "usb-nop-xceiv";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hsusb1_phy_pins>;
+		reset-gpios = <&gpio1 25 GPIO_ACTIVE_LOW>;
+		vcc-supply = <&hsusb1_power>;
+		#phy-cells = <0>;
+	};
+};
+
+&omap3_pmx_core {
+	gpmc_pins: gpmc_pins {
+		pinctrl-single,pins = <
+			/* gpmc_ncs0 not configurable according to the TRM */
+			OMAP3_CORE1_IOPAD(0x208e, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d0 */
+			OMAP3_CORE1_IOPAD(0x2090, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d1 */
+			OMAP3_CORE1_IOPAD(0x2092, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d2 */
+			OMAP3_CORE1_IOPAD(0x2094, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d3 */
+			OMAP3_CORE1_IOPAD(0x2096, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d4 */
+			OMAP3_CORE1_IOPAD(0x2098, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d5 */
+			OMAP3_CORE1_IOPAD(0x209a, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d6 */
+			OMAP3_CORE1_IOPAD(0x209c, PIN_INPUT | MUX_MODE0)	/* gpmc_d0.gpmc_d7 */
+			OMAP3_CORE1_IOPAD(0x209e, PIN_INPUT | MUX_MODE0)	/* gpmc_d8.gpmc_d8 */
+			OMAP3_CORE1_IOPAD(0x20a0, PIN_INPUT | MUX_MODE0)	/* gpmc_d9.gpmc_d9 */
+			OMAP3_CORE1_IOPAD(0x20a2, PIN_INPUT | MUX_MODE0)	/* gpmc_d10.gpmc_d10 */
+			OMAP3_CORE1_IOPAD(0x20a4, PIN_INPUT | MUX_MODE0)	/* gpmc_d11.gpmc_d11 */
+			OMAP3_CORE1_IOPAD(0x20a6, PIN_INPUT | MUX_MODE0)	/* gpmc_d12.gpmc_d12 */
+			OMAP3_CORE1_IOPAD(0x20a8, PIN_INPUT | MUX_MODE0)	/* gpmc_d13.gpmc_d13 */
+			OMAP3_CORE1_IOPAD(0x20aa, PIN_INPUT | MUX_MODE0)	/* gpmc_d14.gpmc_d14 */
+			OMAP3_CORE1_IOPAD(0x20ac, PIN_INPUT | MUX_MODE0)	/* gpmc_d15.gpmc_d15 */
+		>;
+	};
+
+	i2c1_pins: i2c1_pins {
+		pinctrl-single,pins = <
+			OMAP3_CORE1_IOPAD(0x21ba, PIN_INPUT | MUX_MODE0)	/* i2c1_scl */
+			OMAP3_CORE1_IOPAD(0x21bc, PIN_INPUT | MUX_MODE0)	/* i2c1_sda */
+		>;
+	};
+};
+
+&omap3_pmx_core2 {
+	hsusb1_pins: hsusb1_pins {
+		pinctrl-single,pins = <
+			OMAP3430_CORE2_IOPAD(0x25d8, PIN_OUTPUT | MUX_MODE3)		/* etk_clk.hsusb1_stp */
+			OMAP3430_CORE2_IOPAD(0x25da, PIN_OUTPUT | MUX_MODE3)		/* etk_ctl.hsusb1_clk */
+			OMAP3430_CORE2_IOPAD(0x25dc, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d0.hsusb1_data0 */
+			OMAP3430_CORE2_IOPAD(0x25de, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d1.hsusb1_data1 */
+			OMAP3430_CORE2_IOPAD(0x25e0, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d2.hsusb1_data2 */
+			OMAP3430_CORE2_IOPAD(0x25e2, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d3.hsusb1_data7 */
+			OMAP3430_CORE2_IOPAD(0x25e4, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d4.hsusb1_data4 */
+			OMAP3430_CORE2_IOPAD(0x25e6, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d5.hsusb1_data5 */
+			OMAP3430_CORE2_IOPAD(0x25e8, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d6.hsusb1_data6 */
+			OMAP3430_CORE2_IOPAD(0x25ea, PIN_INPUT_PULLUP | MUX_MODE3)	/* etk_d7.hsusb1_data3 */
+			OMAP3430_CORE2_IOPAD(0x25ec, PIN_INPUT_PULLDOWN | MUX_MODE3)	/* etk_d8.hsusb1_dir */
+			OMAP3430_CORE2_IOPAD(0x25ee, PIN_INPUT_PULLDOWN | MUX_MODE3)	/* etk_d9.hsusb1_nxt */
+		>;
+	};
+
+	hsusb1_phy_pins: hsusb1_phy_pins {
+		pinctrl-single,pins = <
+			OMAP3430_CORE2_IOPAD(0x25f2, PIN_OUTPUT | MUX_MODE4)	/* etk_d11.gpio_25 */
+		>;
+	};
+};
+
+&gpmc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&gpmc_pins>;
+	ranges = <0 0 0x08000000 0x10000000>;	/* CS0: NAND */
+	status = "okay";
+
+	nand: flash@0,0 {
+		compatible = "ti,omap2-nand";
+		reg = <0 0 4>; /* CS0, offset 0 */
+		nand-bus-width = <16>;
+		ti,nand-ecc-opt = "sw";
+		gpmc,device-width = <2>;
+		gpmc,sync-clk-ps = <0>;
+		gpmc,cs-on-ns = <0>;
+		gpmc,cs-rd-off-ns = <36>;
+		gpmc,cs-wr-off-ns = <36>;
+		gpmc,adv-on-ns = <6>;
+		gpmc,adv-rd-off-ns = <24>;
+		gpmc,adv-wr-off-ns = <36>;
+		gpmc,we-on-ns = <0>;
+		gpmc,we-off-ns = <30>;
+		gpmc,oe-on-ns = <0>;
+		gpmc,oe-off-ns = <48>;
+		gpmc,access-ns = <54>;
+		gpmc,rd-cycle-ns = <72>;
+		gpmc,wr-cycle-ns = <72>;
+		gpmc,wait-on-read;
+		gpmc,wait-on-write;
+		gpmc,bus-turnaround-ns = <0>;
+		gpmc,cycle2cycle-delay-ns = <0>;
+		gpmc,clk-activation-ns = <0>;
+		gpmc,wait-monitoring-ns = <0>;
+		gpmc,wr-access-ns = <30>;
+		gpmc,wr-data-mux-bus-ns = <0>;
+	};
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	tps: tps@48 {
+		compatible = "ti,tps65023";
+		reg = <0x48>;
+	};
+
+	eeprom@50 {
+		compatible = "mcp,24c02";
+		reg = <0x50>;
+		pagesize = <8>;
+	};
+};
+
+
+&tps {
+	regulators {
+		vdd_mpu: VDCDC1 {
+			regulator-name = "vdd_mpu";
+			regulator-min-microvolt = <1200000>;
+			regulator-max-microvolt = <1200000>;
+			regulator-always-on;
+		};
+
+		VDCDC2 {
+			regulator-name = "vdd_core";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+
+		VDCDC3 {
+			regulator-name = "vdd_io";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-always-on;
+		};
+
+		LDO1 {
+			regulator-name = "vdd_usb18";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-always-on;
+
+		};
+
+		LDO2 {
+			regulator-name = "vdd_usb33";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+	};
+};
+
+&mcspi1 {
+	status = "disabled";
+};
+
+&mcspi2 {
+	status = "disabled";
+};
+
+&mcspi3 {
+	status = "disabled";
+};
+
+/*
+ * http://www.ti.com/lit/er/sprz306e/sprz306e.pdf page 42
+ *
+ * Advisory 1.1.29 HS USB: ECHI and OHCI Controllers Cannot Work Concurrently
+ * Revision(s) Affected 1.1 and earlier
+ * Details
+ *   An issue in the USBHOST memory access arbiter prevents EHCI and OHCI Host
+ *   Controllers from working simultaneously. As a result one cannot connect a
+ *   HS and a FS USB devices on the USBHOST.
+ * Workaround(s)
+ *   No workaround existsfor the generic use-case.
+ *   For low-throughput requirement a SW arbitration scheme can be implemented.
+ */
+&usbhshost {
+	port1-mode = "ehci-phy";
+};
+
+&usbhsehci {
+	pinctrl-names = "default";
+	pinctrl-0 = <&hsusb1_pins>;
+	phys = <&hsusb1_phy>;
+};
+
+&davinci_mdio {
+	ethernet_phy: ethernet-phy@0 {
+		compatible = "ethernet-phy-id0007.c0f0",
+			     "ethernet-phy-ieee802.3-c22";
+		reg = <0>;
+	};
+};
