@@ -33,7 +33,7 @@
 static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
 
 #ifndef MEM_SIZE
-#define MEM_SIZE	(16*1024*1024)
+#define MEM_SIZE	(256*1024*1024)
 #endif
 
 static struct {
@@ -217,7 +217,7 @@ struct machine_desc * __init setup_machine_tags(phys_addr_t __atags_pointer,
 		convert_to_tag_list(tags);
 #endif
 	if (tags->hdr.tag != ATAG_CORE) {
-		early_print("Warning: Neither atags nor dtb found\n");
+		printk("Warning: Neither atags nor dtb found\n");
 		tags = (struct tag *)&default_tags;
 	}
 
