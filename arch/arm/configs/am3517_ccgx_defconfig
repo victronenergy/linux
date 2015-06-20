@@ -440,7 +440,7 @@ CONFIG_ATAGS=y
 CONFIG_ZBOOT_ROM_TEXT=0x0
 CONFIG_ZBOOT_ROM_BSS=0x0
 # CONFIG_ARM_APPENDED_DTB is not set
-CONFIG_CMDLINE="root=ubi0:rootfs rootfstype=ubifs ubi.mtd=9 console=ttyO0,115200 mtdparts=omap2-nand.0:512k(MLO),1m(u-boot),256k(env1),256k(env2),1m(u-boot2),256k(bootparms),768k(splash),6m(kernel),200m(data),-(rootfs) omapdss.def_disp=lcd omapfb.vram=0:2M vram=2M fbskip quiet"
+CONFIG_CMDLINE="root=ubi0:rootfs rootfstype=ubifs ubi.mtd=9 mtdparts=omap2-nand.0:512k(MLO),1m(u-boot),256k(env1),256k(env2),1m(u-boot2),256k(bootparms),768k(splash),6m(kernel),200m(data),-(rootfs) omapdss.def_disp=lcd omapfb.vram=0:2M vram=2M fbskip quiet"
 CONFIG_CMDLINE_FROM_BOOTLOADER=y
 # CONFIG_CMDLINE_EXTEND is not set
 # CONFIG_CMDLINE_FORCE is not set
@@ -460,10 +460,10 @@ CONFIG_CPU_FREQ=y
 CONFIG_CPU_FREQ_TABLE=y
 CONFIG_CPU_FREQ_STAT=y
 # CONFIG_CPU_FREQ_STAT_DETAILS is not set
-# CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE is not set
+CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=y
 # CONFIG_CPU_FREQ_DEFAULT_GOV_POWERSAVE is not set
 # CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE is not set
-CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND=y
+# CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND is not set
 # CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE is not set
 CONFIG_CPU_FREQ_GOV_PERFORMANCE=y
 CONFIG_CPU_FREQ_GOV_POWERSAVE=y
