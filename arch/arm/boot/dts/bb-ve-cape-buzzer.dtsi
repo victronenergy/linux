@@ -1,0 +1,22 @@
+/ {
+	buzzer {
+		compatible = "pwm-beeper";
+		pwms = <&ehrpwm1 0 1000000 0>;
+	};
+};
+
+&am33xx_pinmux {
+	buzzer_pins: pinmux_buzzer {
+		pinctrl-single,pins = <0x048 (MUX_MODE6)>;
+	};
+};
+
+&epwmss1 {
+	status = "okay";
+};
+
+&ehrpwm1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&buzzer_pins>;
+};

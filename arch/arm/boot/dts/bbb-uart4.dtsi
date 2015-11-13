@@ -1,0 +1,14 @@
+&am33xx_pinmux {
+	uart4_pins: uart4_pins {
+		pinctrl-single,pins = <
+			0x70 (PIN_INPUT_PULLUP | MUX_MODE6)     /* P9.11, uart4_rxd */
+			0x74 (PIN_OUTPUT_PULLDOWN | MUX_MODE6)  /* P9.13, uart4_txd */
+		>;
+	};
+};
+
+&uart4 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart4_pins>;
+};

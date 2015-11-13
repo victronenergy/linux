@@ -560,7 +560,10 @@ dtb-$(CONFIG_SOC_AM33XX) += \
 	am335x-shc.dtb \
 	am335x-sbc-t335.dtb \
 	am335x-sl50.dtb \
-	am335x-wega-rdk.dtb
+	am335x-wega-rdk.dtb \
+	bbb-octo-venus.dtb \
+	bbb-venus.dtb \
+	bbe-venus.dtb
 dtb-$(CONFIG_ARCH_OMAP4) += \
 	omap4-duovero-parlor.dtb \
 	omap4-kc1.dtb \
