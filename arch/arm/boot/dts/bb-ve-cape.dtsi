@@ -1,0 +1,83 @@
+#include "bbb-dcan0.dtsi"
+#include "bbb-dcan1.dtsi"
+#include "bbb-uart2.dtsi"
+#include "bbb-uart4.dtsi"
+#include "bbb-uart5.dtsi"
+#include "bb-ve-cape-buzzer.dtsi"
+#include "bb-ve-cape-digital-inputs.dtsi"
+#include <dt-bindings/input/input.h>
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ve_led_pins>;
+
+		led-green {
+			label = "vecape:green:ve0";
+			gpios = <&gpio1 17 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "blink-slow";
+		};
+
+		led-red {
+			label = "vecape:red:ve1";
+			gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+
+	button {
+		compatible = "gpio-keys";
+
+		button {
+			linux,code = <KEY_CONFIG>;
+			gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+};
+
+&am33xx_pinmux {
+	// note: needed by bb-ve-cape-digital-inputs.dtsi
+	pinctrl-0 = <&digital_inputs>;
+
+	ve_led_pins: pinmux_led_pins {
+		pinctrl-single,pins = <
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A1, PIN_OUTPUT, MUX_MODE7)
+			AM33XX_PADCONF(AM335X_PIN_MCASP0_FSR, PIN_OUTPUT, MUX_MODE7)
+		>;
+	};
+
+	i2c1_pins: pinmux_i2c1_pins {
+		pinctrl-single,pins = <
+			AM33XX_PADCONF(AM335X_PIN_SPI0_D1, PIN_INPUT, MUX_MODE2)
+			AM33XX_PADCONF(AM335X_PIN_SPI0_CS0, PIN_INPUT, MUX_MODE2)
+		>;
+	};
+};
+
+&tscadc {
+	status = "okay";
+
+	adc {
+		ti,adc-channels = <0 1 2 3 4 5 6>;
+	};
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	status = "okay";
+	clock-frequency = <400000>;
+
+	eeprom@57 {
+		compatible = "atmel,24c256";
+		reg = <0x57>;
+		pagesize = <64>;
+	};
+
+	rtc2: rtc@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+	};
+};
