@@ -1,0 +1,208 @@
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common.dtsi"
+#include "bb-ve-cape.dtsi"
+
+/ {
+	model = "Octo GX";
+	compatible = "unipoin,gridless-octo", "ti,am335x-bone-black", "ti,am33xx";
+
+	aliases {
+		// rs485
+		usb-serial0 = &usb_serial2;
+		// VE.Direct on the top, 1 the one in the corner near the sd_boot,
+		// thereafter increasing counter clockwise.
+		usb-serial1 = &usb_serial12;
+		usb-serial2 = &usb_serial13;
+		usb-serial3 = &usb_serial14;
+		usb-serial4 = &usb_serial11;
+		usb-serial5 = &usb_serial10;
+		usb-serial6 = &usb_serial9;
+		usb-serial7 = &usb_serial8;
+		usb-serial8 = &usb_serial7;
+		// not ordered, since these are not mounted
+		usb-serial9 = &usb_serial6;
+		usb-serial10 = &usb_serial5;
+		usb-serial11 = &usb_serial4;
+		usb-serial12 = &usb_serial3;
+		usb-serial13 = &usb_serial1;
+		usb-serial14 = &usb_serial0;
+	};
+};
+
+&ldo3_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	regulator-always-on;
+};
+
+&mmc1 {
+	vmmc-supply = <&vmmcsd_fixed>;
+};
+
+&mmc2 {
+	vmmc-supply = <&vmmcsd_fixed>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_pins>;
+	bus-width = <8>;
+	status = "okay";
+};
+
+&tscadc {
+	status = "disabled";
+};
+
+&usb0 {
+	status = "okay";
+	dr_mode = "host";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	usb-hub@1 {
+		compatible = "usb424,2514";
+		reg = <1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usb-serial@1 {
+			compatible = "usb403,6010";
+			reg = <1>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			usb_serial0: port@0 {
+				reg = <0 1>;
+			};
+
+			usb_serial1: port@1 {
+				reg = <1 1>;
+			};
+		};
+
+		usb_serial2: usb-serial@2 {
+			compatible = "usb403,6015";
+			reg = <2>;
+		};
+
+		wireless-controller@3 {
+			compatible = "usbbda,b720";
+			reg = <3>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			bluetooth@0 {
+				reg = <0 1>;
+				status = "disabled";
+			};
+
+			bluetooth@1 {
+				reg = <1 1>;
+				status = "disabled";
+			};
+		};
+	};
+};
+
+&usb1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	usb-hub@1 {
+		compatible = "usb424,2513";
+		reg = <1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usb-serial@1 {
+			compatible = "usb403,6011";
+			reg = <1>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			usb_serial3: port@0 {
+				reg = <0 1>;
+			};
+
+			usb_serial4: port@1 {
+				reg = <1 1>;
+			};
+
+			usb_serial5: port@2 {
+				reg = <2 1>;
+			};
+
+			usb_serial6: port@3 {
+				reg = <3 1>;
+			};
+		};
+
+		usb-serial@2 {
+			compatible = "usb403,6011";
+			reg = <2>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			usb_serial7: port@0 {
+				reg = <0 1>;
+			};
+
+			usb_serial8: port@1 {
+				reg = <1 1>;
+			};
+
+			usb_serial9: port@2 {
+				reg = <2 1>;
+			};
+
+			usb_serial10: port@3 {
+				reg = <3 1>;
+			};
+		};
+
+		usb-serial@3 {
+			compatible = "usb403,6011";
+			reg = <3>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			usb_serial11: port@0 {
+				reg = <0 1>;
+			};
+
+			usb_serial12: port@1 {
+				reg = <1 1>;
+			};
+
+			usb_serial13: port@2 {
+				reg = <2 1>;
+			};
+
+			usb_serial14: port@3 {
+				reg = <3 1>;
+			};
+		};
+	};
+};
+
+&gpio0 {
+	gpio-line-names = "digital_input_2";
+	gpio-line-numbers = <26>;
+};
+
+&gpio1 {
+	gpio-line-names = "digital_input_1", "digital_input_3";
+	gpio-line-numbers = <14>, <29>;
+};
+
+&gpio2 {
+	gpio-line-names = "relay_1", "vebus_standby", "mkx_rst";
+	gpio-line-numbers = <3>, <10>, <12>;
+};

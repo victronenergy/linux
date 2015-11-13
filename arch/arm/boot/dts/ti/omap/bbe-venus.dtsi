@@ -1,0 +1,65 @@
+#include "bb-ve-cape.dtsi"
+
+/ {
+	model = "Venus GX";
+	compatible = "sancloud,am335x-boneenhanced", "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+};
+
+&am33xx_pinmux {
+	// mind it, bb-ve-cape-digital-inputs.dtsi needs &digital_inputs
+	pinctrl-0 = <&usb_hub_ctrl>, <&digital_inputs>;
+};
+
+&usb0 {
+	status = "okay";
+	dr_mode = "host";
+};
+
+&usb1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	usb-hub@1 {
+		compatible = "usb424,2514";
+		reg = <1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		wireless-controller@4 {
+			compatible = "usbbda,b720";
+			reg = <4>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			bluetooth@0 {
+				reg = <0 1>;
+				status = "disabled";
+			};
+
+			bluetooth@1 {
+				reg = <1 1>;
+				status = "disabled";
+			};
+		};
+	};
+};
+
+&gpio0 {
+	gpio-line-names = "digital_input_2";
+	gpio-line-numbers = <26>;
+};
+
+&gpio1 {
+	gpio-line-names =
+		"digital_input_5", "digital_input_1", "digital_input_3";
+	gpio-line-numbers = <12>, <14>, <29>;
+};
+
+&gpio2 {
+	gpio-line-names =
+		"digital_input_4", "relay_1", "relay_2",
+		"vebus_standby", "mkx_rst";
+	gpio-line-numbers = <1>, <3>, <5>, <10>, <12>;
+};
