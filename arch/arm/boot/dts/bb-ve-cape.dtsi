@@ -1,0 +1,67 @@
+#include "bbb-dcan0.dtsi"
+#include "bbb-dcan1.dtsi"
+#include "bbb-uart2.dtsi"
+#include "bbb-uart4.dtsi"
+#include "bbb-uart5.dtsi"
+#include "bb-ve-cape-buzzer.dtsi"
+#include "bb-ve-cape-digital-inputs.dtsi"
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ve_led_pins>;
+
+		led@0 {
+			label = "vecape:green:ve0";
+			gpios = <&gpio1 17 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "timer";
+			default-state = "on";
+		};
+
+		led@1 {
+			label = "vecape:red:ve1";
+			gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "off";
+		};
+	};
+};
+
+&am33xx_pinmux {
+	// note: needed by bb-ve-cape-digital-inputs.dtsi
+	pinctrl-0 = <&digital_inputs>;
+
+	ve_led_pins: pinmux_led_pins {
+		pinctrl-single,pins = <
+			0x044 (PIN_OUTPUT | MUX_MODE7)	/* gpmc_a1.gpio49 */
+			0x1A4 (PIN_OUTPUT | MUX_MODE7)	/* mcasp0_fsr.gpio115 */
+		>;
+	};
+
+	i2c1_pins: pinmux_i2c1_pins {
+		pinctrl-single,pins = <
+			0x158 (PIN_INPUT | MUX_MODE2)	/* spi0_d1.i2c1_sda */
+			0x15C (PIN_INPUT | MUX_MODE2)	/* spi0_cs0.i2c1_scl */
+		>;
+	};
+};
+
+&tscadc {
+	status = "okay";
+
+	adc {
+		ti,adc-channels = <0 1 2 3 4 5 6>;
+	};
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	status = "okay";
+	clock-frequency = <400000>;
+
+	rtc2: pcf8523@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+	};
+};
