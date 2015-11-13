@@ -1,0 +1,20 @@
+&am33xx_pinmux {
+	spi1_pins: spi1_pins {
+		pinctrl-single,pins = <
+			0x19c (PIN_OUTPUT_PULLUP | MUX_MODE3)  /* P9.28, spi1_cs0 */
+			0x194 (PIN_OUTPUT_PULLUP | MUX_MODE3)  /* P9.29, spi1_d0 */
+			0x198 (PIN_INPUT_PULLUP | MUX_MODE3)   /* P9.30, spi1_d1 */
+			0x190 (PIN_INPUT_PULLUP | MUX_MODE3)   /* P9.31, spi1_sclk */
+			0x164 (PIN_OUTPUT_PULLUP | MUX_MODE2)  /* P9.42, spi1_cs1 */
+		>;
+	};
+};
+
+&spi1 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi1_pins>;
+	ti,pindir-d0-out-d1-in = <1>; /* d0 is MOSI, d1 is MISO */
+
+	/* need defs for ds1347 rtc and display */
+};
