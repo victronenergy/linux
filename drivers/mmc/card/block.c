@@ -2097,7 +2097,7 @@ again:
 		return ERR_PTR(-ENOMEM);
 
 	spin_lock(&mmc_blk_lock);
-	ret = ida_get_new(&mmc_blk_ida, &devidx);
+	ret = ida_get_new_above(&mmc_blk_ida, card->host->index, &devidx);
 	spin_unlock(&mmc_blk_lock);
 
 	if (ret == -EAGAIN)
