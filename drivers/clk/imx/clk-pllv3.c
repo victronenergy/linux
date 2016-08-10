@@ -408,6 +408,13 @@ static const struct clk_ops clk_pllv3_enet_ops = {
 	.recalc_rate	= clk_pllv3_enet_recalc_rate,
 };
 
+static const struct clk_ops clk_pllv3_generic_ops = {
+	.prepare	= clk_pllv3_prepare,
+	.unprepare	= clk_pllv3_unprepare,
+	.is_prepared	= clk_pllv3_is_prepared,
+	.recalc_rate	= clk_pllv3_vf610_recalc_rate,
+};
+
 struct clk_hw *imx_clk_hw_pllv3(enum imx_pllv3_type type, const char *name,
 			  const char *parent_name, void __iomem *base,
 			  u32 div_mask)
@@ -429,6 +436,11 @@ struct clk_hw *imx_clk_hw_pllv3(enum imx_pllv3_type type, const char *name,
 	switch (type) {
 	case IMX_PLLV3_SYS:
 		ops = &clk_pllv3_sys_ops;
+		break;
+	case IMX_PLLV3_GENERIC:
+		ops = &clk_pllv3_generic_ops;
+		pll->num_offset = PLL_VF610_NUM_OFFSET;
+		pll->denom_offset = PLL_VF610_DENOM_OFFSET;
 		break;
 	case IMX_PLLV3_SYS_VF610:
 		ops = &clk_pllv3_vf610_ops;
