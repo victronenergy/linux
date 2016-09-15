@@ -735,6 +735,21 @@ static struct gpio ccgx_gpio_export[] = {
 		.label = "buzzer",
 	},
 	{
+		.gpio = 94,
+		.flags = GPIOF_IN,
+		.label = "hw_revR821",
+	},
+	{
+		.gpio = 96,
+		.flags = GPIOF_IN,
+		.label = "hw_revR819",
+	},
+	{
+		.gpio = 98,
+		.flags = GPIOF_IN,
+		.label = "hw_revR820",
+	},
+	{
 		.gpio = 99,
 		.flags = GPIOF_OUT_INIT_HIGH,
 		.label = "power_down",
@@ -765,8 +780,21 @@ static void __init ccgx_export_gpio(void)
 {
 	int n, r;
 
-	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++)
-		omap_mux_init_gpio(ccgx_gpio_export[n].gpio, OMAP_PIN_OUTPUT);
+	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++) {
+		if (ccgx_gpio_export[n].flags == GPIOF_IN)
+			/*
+			 * This can generate a "Multiple gpio paths (2) for
+			 * gpio##" info message. The OMAP am35xx_zcn_subset
+			 * has multiple definitions for the same pin. The mux
+			 * mode for the pins is set separately using
+			 * "omap_mux_init_signal" from ccgx_init
+			 */
+			omap_mux_init_gpio(ccgx_gpio_export[n].gpio,
+						OMAP_PIN_INPUT);
+		else
+			omap_mux_init_gpio(ccgx_gpio_export[n].gpio,
+						OMAP_PIN_OUTPUT);
+	}
 
 	r = gpio_request_array(ccgx_gpio_export, ARRAY_SIZE(ccgx_gpio_export));
 	if (r) {
@@ -819,6 +847,11 @@ static void __init ccgx_init(void)
 	omap_mux_init_signal("sdmmc1_dat4.gpio_126", OMAP_PIN_INPUT);
 	omap_mux_init_signal("cam_strobe.safe_mode", OMAP_PIN_OFF_NONE);
 	omap_hsmmc_init(mmc);
+
+	/* Mux init for HW revision input pins */
+	omap_mux_init_signal("ccdc_pclk.gpio_94", OMAP_PIN_INPUT);
+	omap_mux_init_signal("ccdc_hd.gpio_96", OMAP_PIN_INPUT);
+	omap_mux_init_signal("ccdc_wen.gpio_98", OMAP_PIN_INPUT);
 
 	/* USB Peripheral */
 	am3517_musb_init();
