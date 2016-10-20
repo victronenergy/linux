@@ -650,14 +650,12 @@ static struct omap_hwmod omap3430es1_dss_core_hwmod = {
 	},
 	.opt_clks	= dss_opt_clks,
 	.opt_clks_cnt = ARRAY_SIZE(dss_opt_clks),
-	.flags		= HWMOD_NO_IDLEST | HWMOD_CONTROL_OPT_CLKS_IN_RESET |
-				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_NO_IDLEST | HWMOD_CONTROL_OPT_CLKS_IN_RESET,
 };
 
 static struct omap_hwmod omap3xxx_dss_core_hwmod = {
 	.name		= "dss_core",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET |
-				HWMOD_INIT_NO_RESET | HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
 	.class		= &omap2_dss_hwmod_class,
 	.main_clk	= "dss1_alwon_fck", /* instead of dss_fck */
 	.sdma_reqs	= omap3xxx_dss_sdma_chs,
@@ -709,8 +707,7 @@ static struct omap_hwmod omap3xxx_dss_dispc_hwmod = {
 			.module_offs = OMAP3430_DSS_MOD,
 		},
 	},
-	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
-				HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_NO_IDLEST,
 	.dev_attr	= &omap2_3_dss_dispc_dev_attr
 };
 
@@ -747,8 +744,7 @@ static struct omap_hwmod omap3xxx_dss_dsi1_hwmod = {
 	},
 	.opt_clks	= dss_dsi1_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_dsi1_opt_clks),
-	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
-				HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_NO_IDLEST,
 };
 
 static struct omap_hwmod_opt_clk dss_rfbi_opt_clks[] = {
@@ -768,8 +764,7 @@ static struct omap_hwmod omap3xxx_dss_rfbi_hwmod = {
 	},
 	.opt_clks	= dss_rfbi_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_rfbi_opt_clks),
-	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
-				HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_NO_IDLEST,
 };
 
 static struct omap_hwmod_opt_clk dss_venc_opt_clks[] = {
@@ -790,8 +785,7 @@ static struct omap_hwmod omap3xxx_dss_venc_hwmod = {
 	},
 	.opt_clks	= dss_venc_opt_clks,
 	.opt_clks_cnt	= ARRAY_SIZE(dss_venc_opt_clks),
-	.flags		= HWMOD_NO_IDLEST | HWMOD_INIT_NO_RESET |
-				HWMOD_INIT_NO_IDLE,
+	.flags		= HWMOD_NO_IDLEST,
 };
 
 /* I2C1 */
