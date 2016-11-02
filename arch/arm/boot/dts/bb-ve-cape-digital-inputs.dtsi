@@ -1,0 +1,11 @@
+&am33xx_pinmux {
+	digital_inputs: pinmux_digital_inputs {
+		pinctrl-single,pins = <
+			0x38 (PIN_INPUT | MUX_MODE7)	/* GPIO1_14 = Digital input 1 */
+			0x28 (PIN_INPUT | MUX_MODE7)	/* GPIO0_26 = Digital input 2 */
+			0x7C (PIN_INPUT | MUX_MODE7)	/* GPIO1_29 = Digital input 3 */
+			0x8C (PIN_INPUT | MUX_MODE7)	/* GPIO2_1  = Digital input 4 */
+			0x30 (PIN_INPUT | MUX_MODE7)	/* GPIO1_12 = Digital input 5 */
+		>;
+	};
+};
