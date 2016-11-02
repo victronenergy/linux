@@ -8,6 +8,7 @@
 #include "bbb-uart2.dtsi"
 #include "bbb-uart4.dtsi"
 #include "bbb-uart5.dtsi"
+#include "bb-ve-cape-digital-inputs.dtsi"
 
 / {
 	model = "TI AM335x BeagleBone Black";
@@ -17,6 +18,8 @@
 &am33xx_pinmux {
 	pinctrl-names = "default";
 
+	pinctrl-0 = <&digital_inputs>;
+
 	i2c1_pins: pinmux_i2c1_pins {
 		pinctrl-single,pins = <
 			0x158 (PIN_INPUT | MUX_MODE2)	/* spi0_d1.i2c1_sda */
@@ -24,6 +27,7 @@
 		>;
 	};
 };
+
 &ldo3_reg {
 	regulator-min-microvolt = <1800000>;
 	regulator-max-microvolt = <1800000>;
