@@ -8,6 +8,7 @@
 #include "bbb-uart2.dtsi"
 #include "bbb-uart4.dtsi"
 #include "bbb-uart5.dtsi"
+#include "bb-ve-cape-digital-inputs.dtsi"
 
 / {
 	model = "SanCloud BeagleBone Enhanced";
@@ -16,7 +17,7 @@
 
 &am33xx_pinmux {
 	pinctrl-names = "default";
-	pinctrl-0 = <&usb_hub_ctrl>;
+	pinctrl-0 = <&usb_hub_ctrl>, <&digital_inputs>;
 
 	i2c1_pins: pinmux_i2c1_pins {
 		pinctrl-single,pins = <
