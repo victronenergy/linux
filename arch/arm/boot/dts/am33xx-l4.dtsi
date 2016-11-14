@@ -108,6 +108,11 @@
 
 				prcm_clockdomains: clockdomains {
 				};
+
+				prm_dev: prm_dev@f00 {
+					compatible = "ti,omap3-rst", "syscon";
+					reg = <0xf00 0x20>;
+				};
 			};
 		};
 
