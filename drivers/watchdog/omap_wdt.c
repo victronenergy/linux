@@ -41,6 +41,9 @@
 #include <linux/pm_runtime.h>
 #include <linux/platform_data/omap-wd-timer.h>
 
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
+
 #include "omap_wdt.h"
 
 static bool nowayout = WATCHDOG_NOWAYOUT;
@@ -266,6 +269,19 @@ static int omap_wdt_probe(struct platform_device *pdev)
 		u32 rs = pdata->read_reset_sources();
 		if (rs & (1 << OMAP_MPU_WD_RST_SRC_ID_SHIFT))
 			wdev->wdog.bootstatus = WDIOF_CARDRESET;
+	} else {
+		struct regmap *rm =
+			syscon_regmap_lookup_by_compatible("ti,omap3-rst");
+		u32 rs = 0;
+		int err;
+
+		if (!IS_ERR(rm)) {
+			err = regmap_read(rm, 8, &rs);
+			if (!err)
+				regmap_write(rm, 8, rs);
+		}
+
+		wdev->wdog.bootstatus = rs;
 	}
 
 	if (!early_enable)
