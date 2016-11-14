@@ -42,6 +42,9 @@
 #include <linux/pm_runtime.h>
 #include <linux/platform_data/omap-wd-timer.h>
 
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
+
 #include "omap_wdt.h"
 
 static bool nowayout = WATCHDOG_NOWAYOUT;
@@ -257,10 +260,24 @@ static int omap_wdt_probe(struct platform_device *pdev)
 
 	if (pdata && pdata->read_reset_sources)
 		rs = pdata->read_reset_sources();
-	else
+	else {
+		struct regmap *rm =
+			syscon_regmap_lookup_by_compatible("ti,am3-prcm-wkup");
 		rs = 0;
-	omap_wdt->bootstatus = (rs & (1 << OMAP_MPU_WD_RST_SRC_ID_SHIFT)) ?
-				WDIOF_CARDRESET : 0;
+
+		if (!IS_ERR(rm)) {
+			u32 rs_tmp;
+
+			if (regmap_read(rm, 2 * sizeof(u32), &rs_tmp) >= 0) {
+				/* reset registers */
+				regmap_write(rm, 2 * sizeof(u32), 0x233);
+
+				/* set relevant bits into boot status */
+				rs = rs_tmp & 0x1F;
+			}
+		}
+	}
+	omap_wdt->bootstatus = rs;
 
 	omap_wdt_disable(wdev);
 
