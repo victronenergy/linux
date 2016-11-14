@@ -109,6 +109,7 @@
 			prcm: prcm@200000 {
 				compatible = "ti,am3-prcm";
 				reg = <0x200000 0x4000>;
+				ranges = <0 0x200000 0x4000>;
 
 				prcm_clocks: clocks {
 					#address-cells = <1>;
@@ -116,6 +117,11 @@
 				};
 
 				prcm_clockdomains: clockdomains {
+				};
+
+				prcm_wkup: prcm-wkup@f00 {
+					compatible = "ti,am3-prcm-wkup", "syscon";
+					reg = <0xf00 0xff>;
 				};
 			};
 
