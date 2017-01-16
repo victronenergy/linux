@@ -414,7 +414,9 @@ dtb-$(CONFIG_SOC_AM33XX) += \
 	am335x-nano.dtb \
 	am335x-pepper.dtb \
 	am335x-lxm.dtb \
-	am335x-chiliboard.dtb
+	am335x-chiliboard.dtb \
+	bbb-venus.dtb \
+	bbe-venus.dtb
 dtb-$(CONFIG_ARCH_OMAP4) += \
 	omap4-duovero-parlor.dtb \
 	omap4-panda.dtb \
