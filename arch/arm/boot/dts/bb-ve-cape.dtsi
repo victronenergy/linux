@@ -1,0 +1,38 @@
+#include "bbb-dcan0.dtsi"
+#include "bbb-dcan1.dtsi"
+#include "bbb-uart2.dtsi"
+#include "bbb-uart4.dtsi"
+#include "bbb-uart5.dtsi"
+#include "bb-ve-cape-digital-inputs.dtsi"
+
+&am33xx_pinmux {
+	// note: needed by bb-ve-cape-digital-inputs.dtsi
+	pinctrl-0 = <&digital_inputs>;
+
+	i2c1_pins: pinmux_i2c1_pins {
+		pinctrl-single,pins = <
+			0x158 (PIN_INPUT | MUX_MODE2)	/* spi0_d1.i2c1_sda */
+			0x15C (PIN_INPUT | MUX_MODE2)	/* spi0_cs0.i2c1_scl */
+		>;
+	};
+};
+
+&tscadc {
+	status = "okay";
+
+	adc {
+		ti,adc-channels = <0 1 2 3 4 5 6>;
+	};
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	status = "okay";
+	clock-frequency = <400000>;
+
+	rtc2: pcf8523@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+	};
+};
