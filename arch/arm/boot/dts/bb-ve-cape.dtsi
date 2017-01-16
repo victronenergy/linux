@@ -3,6 +3,7 @@
 #include "bbb-uart2.dtsi"
 #include "bbb-uart4.dtsi"
 #include "bbb-uart5.dtsi"
+#include "bb-ve-cape-buzzer.dtsi"
 #include "bb-ve-cape-digital-inputs.dtsi"
 
 &am33xx_pinmux {
