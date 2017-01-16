@@ -6,9 +6,37 @@
 #include "bb-ve-cape-buzzer.dtsi"
 #include "bb-ve-cape-digital-inputs.dtsi"
 
+/ {
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ve_led_pins>;
+
+		led@0 {
+			label = "vecape:green:ve0";
+			gpios = <&gpio1 17 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "timer";
+			default-state = "on";
+		};
+
+		led@1 {
+			label = "vecape:red:ve1";
+			gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "off";
+		};
+	};
+};
+
 &am33xx_pinmux {
 	// note: needed by bb-ve-cape-digital-inputs.dtsi
 	pinctrl-0 = <&digital_inputs>;
+
+	ve_led_pins: pinmux_led_pins {
+		pinctrl-single,pins = <
+			0x044 (PIN_OUTPUT | MUX_MODE7)	/* gpmc_a1.gpio49 */
+			0x1A4 (PIN_OUTPUT | MUX_MODE7)	/* mcasp0_fsr.gpio115 */
+		>;
+	};
 
 	i2c1_pins: pinmux_i2c1_pins {
 		pinctrl-single,pins = <
