@@ -2,29 +2,16 @@
 
 #include "am33xx.dtsi"
 #include "am335x-bone-common.dtsi"
-#include "bbb-dcan0.dtsi"
-#include "bbb-dcan1.dtsi"
-#include "bbb-spi1.dtsi"
-#include "bbb-uart2.dtsi"
-#include "bbb-uart4.dtsi"
-#include "bbb-uart5.dtsi"
-#include "bb-ve-cape-digital-inputs.dtsi"
+#include "bb-ve-cape.dtsi"
 
 / {
-	model = "SanCloud BeagleBone Enhanced";
+	model = "SanCloud BeagleBone Enhanced with victronenergy cape";
 	compatible = "sancloud,am335x-boneenhanced", "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 
 &am33xx_pinmux {
-	pinctrl-names = "default";
+	// mind it, bb-ve-cape-digital-inputs.dtsi needs &digital_inputs
 	pinctrl-0 = <&usb_hub_ctrl>, <&digital_inputs>;
-
-	i2c1_pins: pinmux_i2c1_pins {
-		pinctrl-single,pins = <
-			0x158 (PIN_INPUT | MUX_MODE2)	/* spi0_d1.i2c1_sda */
-			0x15C (PIN_INPUT | MUX_MODE2)	/* spi0_cs0.i2c1_scl */
-		>;
-	};
 
 	usb_hub_ctrl: usb_hub_ctrl {
 		pinctrl-single,pins = <
@@ -83,7 +70,6 @@
 			0x14c (PIN_INPUT_PULLDOWN | MUX_MODE7)
 		>;
 	};
-
 };
 
 &ldo3_reg {
@@ -104,14 +90,6 @@
 	status = "okay";
 };
 
-&tscadc {
-	status = "okay";
-
-	adc {
-		ti,adc-channels = <0 1 2 3 4 5 6>;
-	};
-};
-
 &mac {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&cpsw_default>;
@@ -127,16 +105,4 @@
 &cpsw_emac0 {
 	phy_id = <&davinci_mdio>, <0>;
 	phy-mode = "rgmii-txid";
-};
-
-&i2c1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c1_pins>;
-	status = "okay";
-	clock-frequency = <400000>;
-
-	rtc2: pcf8523@68 {
-		compatible = "nxp,pcf8523";
-		reg = <0x68>;
-	};
 };
