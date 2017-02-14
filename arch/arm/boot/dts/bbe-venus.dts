@@ -96,6 +96,11 @@
 	pinctrl-1 = <&cpsw_sleep>;
 };
 
+&usb0 {
+	status = "okay";
+	dr_mode = "host";
+};
+
 &davinci_mdio {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&davinci_mdio_default>;
