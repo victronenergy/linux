@@ -62,7 +62,7 @@ int hcd_buffer_create(struct usb_hcd *hcd)
 	char		name[16];
 	int		i, size;
 
-	if (!hcd->self.controller->dma_mask &&
+	if (!is_device_dma_capable(hcd->self.sysdev) &&
 	    !(hcd->driver->flags & HCD_LOCAL_MEM))
 		return 0;
 
@@ -71,7 +71,7 @@ int hcd_buffer_create(struct usb_hcd *hcd)
 		if (!size)
 			continue;
 		snprintf(name, sizeof name, "buffer-%d", size);
-		hcd->pool[i] = dma_pool_create(name, hcd->self.controller,
+		hcd->pool[i] = dma_pool_create(name, hcd->self.sysdev,
 				size, size, 0);
 		if (!hcd->pool[i]) {
 			hcd_buffer_destroy(hcd);
@@ -118,7 +118,7 @@ void *hcd_buffer_alloc(
 	int			i;
 
 	/* some USB hosts just use PIO */
-	if (!bus->controller->dma_mask &&
+	if (!is_device_dma_capable(bus->sysdev) &&
 	    !(hcd->driver->flags & HCD_LOCAL_MEM)) {
 		*dma = ~(dma_addr_t) 0;
 		return kmalloc(size, mem_flags);
@@ -128,7 +128,7 @@ void *hcd_buffer_alloc(
 		if (size <= pool_max[i])
 			return dma_pool_alloc(hcd->pool[i], mem_flags, dma);
 	}
-	return dma_alloc_coherent(hcd->self.controller, size, dma, mem_flags);
+	return dma_alloc_coherent(hcd->self.sysdev, size, dma, mem_flags);
 }
 
 void hcd_buffer_free(
@@ -144,7 +144,7 @@ void hcd_buffer_free(
 	if (!addr)
 		return;
 
-	if (!bus->controller->dma_mask &&
+	if (!is_device_dma_capable(bus->sysdev) &&
 	    !(hcd->driver->flags & HCD_LOCAL_MEM)) {
 		kfree(addr);
 		return;
@@ -156,5 +156,5 @@ void hcd_buffer_free(
 			return;
 		}
 	}
-	dma_free_coherent(hcd->self.controller, size, addr, dma);
+	dma_free_coherent(hcd->self.sysdev, size, addr, dma);
 }

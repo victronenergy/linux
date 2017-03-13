@@ -444,8 +444,8 @@ struct usb_device *usb_alloc_dev(struct usb_device *parent,
 	dev->dev.bus = &usb_bus_type;
 	dev->dev.type = &usb_device_type;
 	dev->dev.groups = usb_device_groups;
-	dev->dev.dma_mask = bus->controller->dma_mask;
-	set_dev_node(&dev->dev, dev_to_node(bus->controller));
+	dev->dev.dma_mask = bus->sysdev->dma_mask;
+	set_dev_node(&dev->dev, dev_to_node(bus->sysdev));
 	dev->state = USB_STATE_ATTACHED;
 	dev->lpm_disable_count = 1;
 	atomic_set(&dev->urbnum, 0);
@@ -794,7 +794,7 @@ struct urb *usb_buffer_map(struct urb *urb)
 	if (!urb
 			|| !urb->dev
 			|| !(bus = urb->dev->bus)
-			|| !(controller = bus->controller))
+			|| !(controller = bus->sysdev))
 		return NULL;
 
 	if (controller->dma_mask) {
@@ -832,7 +832,7 @@ void usb_buffer_dmasync(struct urb *urb)
 			|| !(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)
 			|| !urb->dev
 			|| !(bus = urb->dev->bus)
-			|| !(controller = bus->controller))
+			|| !(controller = bus->sysdev))
 		return;
 
 	if (controller->dma_mask) {
@@ -866,7 +866,7 @@ void usb_buffer_unmap(struct urb *urb)
 			|| !(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)
 			|| !urb->dev
 			|| !(bus = urb->dev->bus)
-			|| !(controller = bus->controller))
+			|| !(controller = bus->sysdev))
 		return;
 
 	if (controller->dma_mask) {
@@ -916,7 +916,7 @@ int usb_buffer_map_sg(const struct usb_device *dev, int is_in,
 
 	if (!dev
 			|| !(bus = dev->bus)
-			|| !(controller = bus->controller)
+			|| !(controller = bus->sysdev)
 			|| !controller->dma_mask)
 		return -EINVAL;
 
@@ -952,7 +952,7 @@ void usb_buffer_dmasync_sg(const struct usb_device *dev, int is_in,
 
 	if (!dev
 			|| !(bus = dev->bus)
-			|| !(controller = bus->controller)
+			|| !(controller = bus->sysdev)
 			|| !controller->dma_mask)
 		return;
 
@@ -980,7 +980,7 @@ void usb_buffer_unmap_sg(const struct usb_device *dev, int is_in,
 
 	if (!dev
 			|| !(bus = dev->bus)
-			|| !(controller = bus->controller)
+			|| !(controller = bus->sysdev)
 			|| !controller->dma_mask)
 		return;
 
