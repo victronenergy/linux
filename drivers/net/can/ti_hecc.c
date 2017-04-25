@@ -901,9 +901,9 @@ static int ti_hecc_probe(struct platform_device *pdev)
 	}
 
 	priv->base = devm_ioremap_resource(&pdev->dev, res);
-	if (!priv->base) {
+	if (IS_ERR(priv->base)) {
 		dev_err(&pdev->dev, "hecc ioremap failed\n");
-		return -ENOMEM;
+		return PTR_ERR(priv->base);
 	}
 
 	/* handle hecc-ram memory */
@@ -914,9 +914,9 @@ static int ti_hecc_probe(struct platform_device *pdev)
 	}
 
 	priv->hecc_ram = devm_ioremap_resource(&pdev->dev, res);
-	if (!priv->hecc_ram) {
+	if (IS_ERR(priv->hecc_ram)) {
 		dev_err(&pdev->dev, "hecc-ram ioremap failed\n");
-		return -ENOMEM;
+		return PTR_ERR(priv->hecc_ram);
 	}
 
 	/* handle mbx memory */
@@ -927,9 +927,9 @@ static int ti_hecc_probe(struct platform_device *pdev)
 	}
 
 	priv->mbx = devm_ioremap_resource(&pdev->dev, res);
-	if (!priv->mbx) {
+	if (IS_ERR(priv->mbx)) {
 		dev_err(&pdev->dev, "mbx ioremap failed\n");
-		return -ENOMEM;
+		return PTR_ERR(priv->mbx);
 	}
 
 	irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
