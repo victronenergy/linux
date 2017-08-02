@@ -690,6 +690,7 @@ dtb-$(CONFIG_SOC_IMX6SLL) += \
 	imx6sll-kobo-clarahd.dtb \
 	imx6sll-kobo-librah2o.dtb
 dtb-$(CONFIG_SOC_IMX6SX) += \
+	imx6sx-canvu500.dtb \
 	imx6sx-nitrogen6sx.dtb \
 	imx6sx-sabreauto.dtb \
 	imx6sx-sdb-reva.dtb \
