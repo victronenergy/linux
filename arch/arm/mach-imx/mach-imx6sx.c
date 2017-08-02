@@ -49,7 +49,7 @@ static void __init imx6sx_enet_clk_sel(void)
 		regmap_update_bits(gpr, IOMUXC_GPR1,
 				   IMX6SX_GPR1_FEC_CLOCK_MUX_SEL_MASK, 0);
 		regmap_update_bits(gpr, IOMUXC_GPR1,
-				   IMX6SX_GPR1_FEC_CLOCK_PAD_DIR_MASK, 0);
+				   IMX6SX_GPR1_FEC_CLOCK_PAD_DIR_MASK, 1 << 17);
 	} else {
 		pr_err("failed to find fsl,imx6sx-iomux-gpr regmap\n");
 	}
