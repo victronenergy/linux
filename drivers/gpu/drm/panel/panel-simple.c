@@ -34,6 +34,7 @@
 #include <drm/drm_panel.h>
 
 #include <video/display_timing.h>
+#include <video/of_display_timing.h>
 #include <video/videomode.h>
 
 struct panel_desc {
@@ -293,6 +294,46 @@ static const struct drm_panel_funcs panel_simple_funcs = {
 	.get_timings = panel_simple_get_timings,
 };
 
+static int panel_simple_parse_dt(struct device *dev, struct panel_simple *panel)
+{
+	struct device_node *np = dev->of_node;
+	struct panel_desc *desc;
+	struct display_timing *timing;
+	int err;
+
+	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
+	if (!desc)
+		return -ENOMEM;
+
+	timing = devm_kzalloc(dev, sizeof(*timing), GFP_KERNEL);
+	if (!timing)
+		return -ENOMEM;
+
+	err = of_get_display_timing(np, "panel-timing", timing);
+	if (err)
+		return err;
+
+	desc->num_timings = 1;
+	desc->timings = timing;
+
+	of_property_read_u32(np, "width-mm", &desc->size.width);
+	of_property_read_u32(np, "height-mm", &desc->size.height);
+
+	if (timing->flags & DISPLAY_FLAGS_DE_HIGH)
+		desc->bus_flags |= DRM_BUS_FLAG_DE_HIGH;
+	else
+		desc->bus_flags |= DRM_BUS_FLAG_DE_LOW;
+
+	if (timing->flags & DISPLAY_FLAGS_PIXDATA_POSEDGE)
+		desc->bus_flags |= DRM_BUS_FLAG_PIXDATA_POSEDGE;
+	else
+		desc->bus_flags |= DRM_BUS_FLAG_PIXDATA_NEGEDGE;
+
+	panel->desc = desc;
+
+	return 0;
+}
+
 static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 {
 	struct device_node *backlight, *ddc;
@@ -306,6 +347,12 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 	panel->enabled = false;
 	panel->prepared = false;
 	panel->desc = desc;
+
+	if (!desc) {
+		err = panel_simple_parse_dt(dev, panel);
+		if (err)
+			return err;
+	}
 
 	panel->supply = devm_regulator_get(dev, "power");
 	if (IS_ERR(panel->supply))
@@ -2141,6 +2188,8 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "winstar,wf35ltiacd",
 		.data = &winstar_wf35ltiacd,
+	}, {
+		.compatible = "simple-panel",
 	}, {
 		/* sentinel */
 	}
