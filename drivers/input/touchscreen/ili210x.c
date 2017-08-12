@@ -224,12 +224,10 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	xmax = panel.finger_max.x_low | (panel.finger_max.x_high << 8);
 	ymax = panel.finger_max.y_low | (panel.finger_max.y_high << 8);
 
-	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
-	input = input_allocate_device();
-	if (!priv || !input) {
-		error = -ENOMEM;
-		goto err_free_mem;
-	}
+	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+	input = devm_input_allocate_device(dev);
+	if (!priv || !input)
+		return -ENOMEM;
 
 	priv->client = client;
 	priv->input = input;
@@ -258,19 +256,20 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, priv);
 
-	error = request_irq(client->irq, ili210x_irq, pdata->irq_flags,
-			    client->name, priv);
+	error = devm_request_irq(dev, client->irq, ili210x_irq,
+				 pdata->irq_flags,
+				 client->name, priv);
 	if (error) {
 		dev_err(dev, "Unable to request touchscreen IRQ, err: %d\n",
 			error);
-		goto err_free_mem;
+		return error;
 	}
 
 	error = sysfs_create_group(&dev->kobj, &ili210x_attr_group);
 	if (error) {
 		dev_err(dev, "Unable to create sysfs attributes, err: %d\n",
 			error);
-		goto err_free_irq;
+		return error;
 	}
 
 	error = input_register_device(priv->input);
@@ -289,11 +288,6 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 
 err_remove_sysfs:
 	sysfs_remove_group(&dev->kobj, &ili210x_attr_group);
-err_free_irq:
-	free_irq(client->irq, priv);
-err_free_mem:
-	input_free_device(input);
-	kfree(priv);
 	return error;
 }
 
@@ -302,10 +296,8 @@ static int ili210x_i2c_remove(struct i2c_client *client)
 	struct ili210x *priv = i2c_get_clientdata(client);
 
 	sysfs_remove_group(&client->dev.kobj, &ili210x_attr_group);
-	free_irq(priv->client->irq, priv);
+	devm_free_irq(&client->dev, priv->client->irq, priv);
 	cancel_delayed_work_sync(&priv->dwork);
-	input_unregister_device(priv->input);
-	kfree(priv);
 
 	return 0;
 }
