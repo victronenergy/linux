@@ -4,6 +4,7 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
+#include <linux/input/touchscreen.h>
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 
@@ -45,6 +46,7 @@ struct ili210x {
 	struct input_dev *input;
 	unsigned int poll_period;
 	struct delayed_work dwork;
+	struct touchscreen_properties prop;
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -73,9 +75,10 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static void ili210x_report_events(struct input_dev *input,
+static void ili210x_report_events(struct ili210x *priv,
 				  const struct touchdata *touchdata)
 {
+	struct input_dev *input = priv->input;
 	int i;
 	bool touch;
 	unsigned int x, y;
@@ -92,8 +95,7 @@ static void ili210x_report_events(struct input_dev *input,
 			x = finger->x_low | (finger->x_high << 8);
 			y = finger->y_low | (finger->y_high << 8);
 
-			input_report_abs(input, ABS_MT_POSITION_X, x);
-			input_report_abs(input, ABS_MT_POSITION_Y, y);
+			touchscreen_report_pos(input, &priv->prop, x, y, true);
 		}
 	}
 
@@ -117,7 +119,7 @@ static void ili210x_work(struct work_struct *work)
 		return;
 	}
 
-	ili210x_report_events(priv->input, &touchdata);
+	ili210x_report_events(priv, &touchdata);
 
 	if (touchdata.status & 0xf3)
 		schedule_delayed_work(&priv->dwork,
@@ -234,6 +236,8 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	input_mt_init_slots(input, MAX_TOUCHES, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
+
+	touchscreen_parse_properties(input, true, &priv->prop);
 
 	i2c_set_clientdata(client, priv);
 
