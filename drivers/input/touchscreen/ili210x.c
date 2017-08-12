@@ -6,7 +6,6 @@
 #include <linux/input/mt.h>
 #include <linux/delay.h>
 #include <linux/workqueue.h>
-#include <linux/input/ili210x.h>
 
 #define MAX_TOUCHES		2
 #define DEFAULT_POLL_PERIOD	20
@@ -44,7 +43,6 @@ struct firmware_version {
 struct ili210x {
 	struct i2c_client *client;
 	struct input_dev *input;
-	bool (*get_pendown_state)(void);
 	unsigned int poll_period;
 	struct delayed_work dwork;
 };
@@ -103,16 +101,6 @@ static void ili210x_report_events(struct input_dev *input,
 	input_sync(input);
 }
 
-static bool get_pendown_state(const struct ili210x *priv)
-{
-	bool state = false;
-
-	if (priv->get_pendown_state)
-		state = priv->get_pendown_state();
-
-	return state;
-}
-
 static void ili210x_work(struct work_struct *work)
 {
 	struct ili210x *priv = container_of(work, struct ili210x,
@@ -131,7 +119,7 @@ static void ili210x_work(struct work_struct *work)
 
 	ili210x_report_events(priv->input, &touchdata);
 
-	if ((touchdata.status & 0xf3) || get_pendown_state(priv))
+	if (touchdata.status & 0xf3)
 		schedule_delayed_work(&priv->dwork,
 				      msecs_to_jiffies(priv->poll_period));
 }
@@ -184,7 +172,6 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
-	const struct ili210x_platform_data *pdata = dev_get_platdata(dev);
 	struct ili210x *priv;
 	struct input_dev *input;
 	struct panel_info panel;
@@ -193,11 +180,6 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	int error;
 
 	dev_dbg(dev, "Probing for ILI210X I2C Touschreen driver");
-
-	if (!pdata) {
-		dev_err(dev, "No platform data!\n");
-		return -EINVAL;
-	}
 
 	if (client->irq <= 0) {
 		dev_err(dev, "No IRQ!\n");
@@ -231,8 +213,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 
 	priv->client = client;
 	priv->input = input;
-	priv->get_pendown_state = pdata->get_pendown_state;
-	priv->poll_period = pdata->poll_period ? : DEFAULT_POLL_PERIOD;
+	priv->poll_period = DEFAULT_POLL_PERIOD;
 	INIT_DELAYED_WORK(&priv->dwork, ili210x_work);
 
 	/* Setup input device */
@@ -256,8 +237,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, priv);
 
-	error = devm_request_irq(dev, client->irq, ili210x_irq,
-				 pdata->irq_flags,
+	error = devm_request_irq(dev, client->irq, ili210x_irq, 0,
 				 client->name, priv);
 	if (error) {
 		dev_err(dev, "Unable to request touchscreen IRQ, err: %d\n",
