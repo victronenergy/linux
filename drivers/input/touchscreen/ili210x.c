@@ -53,23 +53,19 @@ struct ili210x {
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 			    size_t len)
 {
-	struct i2c_msg msg[2] = {
-		{
-			.addr	= client->addr,
-			.flags	= 0,
-			.len	= 1,
-			.buf	= &reg,
-		},
-		{
-			.addr	= client->addr,
-			.flags	= I2C_M_RD,
-			.len	= len,
-			.buf	= buf,
-		}
-	};
+	int ret;
 
-	if (i2c_transfer(client->adapter, msg, 2) != 2) {
-		dev_err(&client->dev, "i2c transfer failed\n");
+	ret = i2c_master_send(client, &reg, 1);
+	if (ret <= 0) {
+		dev_err(&client->dev, "I2C write reg failed: %d\n", ret);
+		return -EIO;
+	}
+
+	usleep_range(100, 1000);
+
+	ret = i2c_master_recv(client, buf, len);
+	if (ret <= 0) {
+		dev_err(&client->dev, "I2C read transfer failed: %d\n", ret);
 		return -EIO;
 	}
 
