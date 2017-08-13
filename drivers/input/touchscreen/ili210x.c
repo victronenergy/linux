@@ -72,19 +72,27 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static void ili210x_report_events(struct ili210x *priv,
-				  const struct touchdata *touchdata)
+static int ili210x_report_events(struct ili210x *priv)
 {
 	struct input_dev *input = priv->input;
+	struct i2c_client *client = priv->client;
+	struct touchdata touchdata;
 	int i;
 	bool touch;
 	unsigned int x, y;
 	const struct finger *finger;
+	int ntouch = 0;
+	int error;
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA,
+				 &touchdata, sizeof(touchdata));
+	if (error)
+		return error;
 
 	for (i = 0; i < MAX_TOUCHES; i++) {
 		input_mt_slot(input, i);
 
-		finger = &touchdata->finger[i];
+		finger = &touchdata.finger[i];
 
 		touch = touchdata->status & (1 << i);
 		input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
@@ -93,32 +101,31 @@ static void ili210x_report_events(struct ili210x *priv,
 			y = finger->y_low | (finger->y_high << 8);
 
 			touchscreen_report_pos(input, &priv->prop, x, y, true);
+
+			ntouch++;
 		}
 	}
 
 	input_mt_report_pointer_emulation(input, false);
 	input_sync(input);
+
+	return ntouch;
 }
 
 static void ili210x_work(struct work_struct *work)
 {
 	struct ili210x *priv = container_of(work, struct ili210x,
 					    dwork.work);
-	struct i2c_client *client = priv->client;
-	struct touchdata touchdata;
-	int error;
+	int ntouch;
 
-	error = ili210x_read_reg(client, REG_TOUCHDATA,
-				 &touchdata, sizeof(touchdata));
-	if (error) {
-		dev_err(&client->dev,
-			"Unable to get touchdata, err = %d\n", error);
+	ntouch = ili210x_report_events(priv);
+	if (ntouch < 0) {
+		dev_err(&priv->client->dev, "Error reading touch data: %d\n",
+			ntouch);
 		return;
 	}
 
-	ili210x_report_events(priv, &touchdata);
-
-	if (touchdata.status & 0xf3)
+	if (ntouch > 0)
 		schedule_delayed_work(&priv->dwork,
 				      msecs_to_jiffies(priv->poll_period));
 }
