@@ -19,10 +19,8 @@
 #define REG_CALIBRATE		0xcc
 
 struct finger {
-	u8 x_low;
-	u8 x_high;
-	u8 y_low;
-	u8 y_high;
+	__le16 x;
+	__le16 y;
 } __packed;
 
 struct touchdata {
@@ -31,7 +29,8 @@ struct touchdata {
 } __packed;
 
 struct panel_info {
-	struct finger finger_max;
+	__le16 xmax;
+	__le16 ymax;
 	u8 xchannel_num;
 	u8 ychannel_num;
 } __packed;
@@ -91,8 +90,8 @@ static int ili210x_report_events(struct ili210x *priv,
 		if (!(touchdata->status & (1 << i)))
 			continue;
 
-		x = finger->x_low | (finger->x_high << 8);
-		y = finger->y_low | (finger->y_high << 8);
+		x = le16_to_cpu(finger->x);
+		y = le16_to_cpu(finger->y);
 
 		touchscreen_set_mt_pos(&priv->pos[np++], &priv->prop, x, y);
 	}
@@ -226,8 +225,8 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 		return error;
 	}
 
-	xmax = panel.finger_max.x_low | (panel.finger_max.x_high << 8);
-	ymax = panel.finger_max.y_low | (panel.finger_max.y_high << 8);
+	xmax = le16_to_cpu(panel.xmax);
+	ymax = le16_to_cpu(panel.ymax);
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
