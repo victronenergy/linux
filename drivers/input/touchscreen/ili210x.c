@@ -47,6 +47,8 @@ struct ili210x {
 	struct input_dev *input;
 	struct delayed_work dwork;
 	struct touchscreen_properties prop;
+	int slots[MAX_TOUCHES];
+	struct input_mt_pos pos[MAX_TOUCHES];
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -75,32 +77,27 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static void ili210x_report_events(struct ili210x *priv,
-				  const struct touchdata *touchdata)
+static int ili210x_report_events(struct ili210x *priv,
+				 struct touchdata *touchdata)
 {
-	struct input_dev *input = priv->input;
 	int i;
-	bool touch;
 	unsigned int x, y;
 	const struct finger *finger;
+	int np = 0;
 
 	for (i = 0; i < MAX_TOUCHES; i++) {
-		input_mt_slot(input, i);
-
 		finger = &touchdata->finger[i];
 
-		touch = touchdata->status & (1 << i);
-		input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
-		if (touch) {
-			x = finger->x_low | (finger->x_high << 8);
-			y = finger->y_low | (finger->y_high << 8);
+		if (!(touchdata->status & (1 << i)))
+			continue;
 
-			touchscreen_report_pos(input, &priv->prop, x, y, true);
-		}
+		x = finger->x_low | (finger->x_high << 8);
+		y = finger->y_low | (finger->y_high << 8);
+
+		touchscreen_set_mt_pos(&priv->pos[np++], &priv->prop, x, y);
 	}
 
-	input_mt_report_pointer_emulation(input, false);
-	input_sync(input);
+	return np;
 }
 
 static void ili210x_work(struct work_struct *work)
@@ -110,6 +107,8 @@ static void ili210x_work(struct work_struct *work)
 	struct i2c_client *client = priv->client;
 	struct touchdata touchdata;
 	int error;
+	int np;
+	int i;
 
 	error = ili210x_read_reg(client, REG_TOUCHDATA,
 				 &touchdata, sizeof(touchdata));
@@ -119,9 +118,23 @@ static void ili210x_work(struct work_struct *work)
 		return;
 	}
 
-	ili210x_report_events(priv, &touchdata);
+	np = ili210x_report_events(priv, &touchdata);
 
-	if (touchdata.status & 0xf3)
+	input_mt_assign_slots(priv->input, priv->slots, priv->pos, np, 0);
+
+	for (i = 0; i < np; i++) {
+		input_mt_slot(priv->input, priv->slots[i]);
+		input_mt_report_slot_state(priv->input, MT_TOOL_FINGER, true);
+		input_report_abs(priv->input, ABS_MT_POSITION_X,
+				 priv->pos[i].x);
+		input_report_abs(priv->input, ABS_MT_POSITION_Y,
+				 priv->pos[i].y);
+	}
+
+	input_mt_sync_frame(priv->input);
+	input_sync(priv->input);
+
+	if (np > 0)
 		schedule_delayed_work(&priv->dwork,
 				      msecs_to_jiffies(POLL_PERIOD));
 }
@@ -243,7 +256,8 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 
 	/* Multi touch */
-	input_mt_init_slots(input, MAX_TOUCHES, 0);
+	input_mt_init_slots(input, MAX_TOUCHES,
+		INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED | INPUT_MT_TRACK);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
 
