@@ -22,24 +22,24 @@ struct finger {
 	u8 x_high;
 	u8 y_low;
 	u8 y_high;
-} __packed;
+};
 
 struct touchdata {
 	u8 status;
 	struct finger finger[MAX_TOUCHES];
-} __packed;
+};
 
 struct panel_info {
 	struct finger finger_max;
 	u8 xchannel_num;
 	u8 ychannel_num;
-} __packed;
+};
 
 struct firmware_version {
 	u8 id;
 	u8 major;
 	u8 minor;
-} __packed;
+};
 
 struct ili210x {
 	struct i2c_client *client;
