@@ -9,7 +9,7 @@
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 
-#define MAX_TOUCHES		2
+#define MAX_TOUCHES		10
 #define DEFAULT_POLL_PERIOD	20
 
 /* Touchscreen commands */
@@ -30,10 +30,24 @@ struct touchdata {
 	struct finger finger[MAX_TOUCHES];
 };
 
+struct finger_v3 {
+	u8 x_high;
+	u8 x_low;
+	u8 y_high;
+	u8 y_low;
+	u8 pressure;
+};
+
+struct touchdata_v3 {
+	u8 last_rep;
+	struct finger_v3 finger[MAX_TOUCHES];
+};
+
 struct panel_info {
 	struct finger finger_max;
 	u8 xchannel_num;
 	u8 ychannel_num;
+	u8 max_touches;
 };
 
 struct firmware_version {
@@ -42,14 +56,24 @@ struct firmware_version {
 	u8 minor;
 };
 
+struct ili210x;
+
+struct ili210x_info {
+	unsigned int max_touches;
+	unsigned int panel_info_size;
+	int (*read_state)(struct ili210x *);
+};
+
 struct ili210x {
 	struct i2c_client *client;
 	struct input_dev *input;
 	unsigned int poll_period;
+	unsigned int max_touches;
 	struct delayed_work dwork;
 	struct touchscreen_properties prop;
 	int slots[MAX_TOUCHES];
 	struct input_mt_pos pos[MAX_TOUCHES];
+	const struct ili210x_info *info;
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -74,7 +98,12 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static int ili210x_read_state(struct ili210x *priv)
+static inline size_t touchdata_v1_size(struct ili210x *priv)
+{
+	return 1 + priv->max_touches * sizeof(struct finger);
+}
+
+static int ili210x_read_state_v1(struct ili210x *priv)
 {
 	struct i2c_client *client = priv->client;
 	struct touchdata touchdata;
@@ -85,11 +114,11 @@ static int ili210x_read_state(struct ili210x *priv)
 	int error;
 
 	error = ili210x_read_reg(client, REG_TOUCHDATA,
-				 &touchdata, sizeof(touchdata));
+				 &touchdata, touchdata_v1_size(priv));
 	if (error)
 		return error;
 
-	for (i = 0; i < MAX_TOUCHES; i++) {
+	for (i = 0; i < priv->max_touches; i++) {
 		finger = &touchdata.finger[i];
 
 		if (!(touchdata.status & (1 << i)))
@@ -104,6 +133,43 @@ static int ili210x_read_state(struct ili210x *priv)
 	return ntouch;
 }
 
+static inline size_t touchdata_v3_size(struct ili210x *priv)
+{
+	return 1 + priv->max_touches * sizeof(struct finger_v3);
+}
+
+static int ili210x_read_state_v3(struct ili210x *priv)
+{
+	struct i2c_client *client = priv->client;
+	struct touchdata_v3 touchdata;
+	int ntouch = 0;
+	int error;
+	int i;
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA,
+				 &touchdata, touchdata_v3_size(priv));
+	if (error)
+		return error;
+
+	if (!touchdata.last_rep)
+		return 0;
+
+	for (i = 0; i < priv->max_touches; i++) {
+		struct finger_v3 *f = &touchdata.finger[i];
+		unsigned int x, y;
+
+		if ((f->x_high & 0xc0) != 0x80)
+			continue;
+
+		x = f->x_low | (f->x_high & 0x3f) << 8;
+		y = f->y_low | f->y_high << 8;
+
+		touchscreen_set_mt_pos(&priv->pos[ntouch++], &priv->prop, x, y);
+	}
+
+	return ntouch;
+}
+
 static void ili210x_work(struct work_struct *work)
 {
 	struct ili210x *priv = container_of(work, struct ili210x,
@@ -111,7 +177,7 @@ static void ili210x_work(struct work_struct *work)
 	int ntouch;
 	int i;
 
-	ntouch = ili210x_read_state(priv);
+	ntouch = priv->info->read_state(priv);
 	if (ntouch < 0) {
 		dev_err(&priv->client->dev, "Error reading touch data: %d\n",
 			ntouch);
@@ -184,11 +250,13 @@ static const struct attribute_group ili210x_attr_group = {
 static int ili210x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
+	const struct ili210x_info *info =
+		(const struct ili210x_info *)id->driver_data;
 	struct device *dev = &client->dev;
 	struct gpio_desc *reset;
 	struct ili210x *priv;
 	struct input_dev *input;
-	struct panel_info panel;
+	struct panel_info panel = { };
 	struct firmware_version firmware;
 	int xmax, ymax;
 	int error;
@@ -217,7 +285,8 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	}
 
 	/* get panel info */
-	error = ili210x_read_reg(client, REG_PANEL_INFO, &panel, sizeof(panel));
+	error = ili210x_read_reg(client, REG_PANEL_INFO, &panel,
+				 info->panel_info_size);
 	if (error) {
 		dev_err(dev, "Failed to get panel information, err: %d\n",
 			error);
@@ -234,8 +303,21 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 
 	priv->client = client;
 	priv->input = input;
+	priv->info = info;
 	priv->poll_period = DEFAULT_POLL_PERIOD;
 	INIT_DELAYED_WORK(&priv->dwork, ili210x_work);
+
+	priv->max_touches = panel.max_touches ? : info->max_touches;
+
+	if (!priv->max_touches) {
+		dev_warn(dev, "max points unspecified, assuming 1\n");
+		priv->max_touches = 1;
+	}
+
+	if (priv->max_touches > MAX_TOUCHES) {
+		dev_warn(dev, "limiting points to %d\n", MAX_TOUCHES);
+		priv->max_touches = MAX_TOUCHES;
+	}
 
 	/* Setup input device */
 	input->name = "ILI210x Touchscreen";
@@ -252,7 +334,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 
 	/* Multi touch */
-	input_mt_init_slots(input, MAX_TOUCHES,
+	input_mt_init_slots(input, priv->max_touches,
 		INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED | INPUT_MT_TRACK);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
@@ -329,9 +411,20 @@ static int __maybe_unused ili210x_i2c_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(ili210x_i2c_pm,
 			 ili210x_i2c_suspend, ili210x_i2c_resume);
 
+static const struct ili210x_info ili210x_v1 = {
+	.max_touches		= 2,
+	.panel_info_size	= 6,
+	.read_state		= ili210x_read_state_v1,
+};
+
+static const struct ili210x_info ili210x_v3 = {
+	.panel_info_size	= 7,
+	.read_state		= ili210x_read_state_v3,
+};
+
 static const struct i2c_device_id ili210x_i2c_id[] = {
-	{ "ili210x", 0 },
-	{ }
+	{ "ili210x", (unsigned long)&ili210x_v1 },
+	{ "ili2511", (unsigned long)&ili210x_v3 },
 };
 MODULE_DEVICE_TABLE(i2c, ili210x_i2c_id);
 
