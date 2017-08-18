@@ -2,6 +2,7 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
+#include <linux/gpio/consumer.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
 #include <linux/input/touchscreen.h>
@@ -174,6 +175,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
+	struct gpio_desc *reset;
 	struct ili210x *priv;
 	struct input_dev *input;
 	struct panel_info panel;
@@ -186,6 +188,13 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	if (client->irq <= 0) {
 		dev_err(dev, "No IRQ!\n");
 		return -EINVAL;
+	}
+
+	reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
+	if (reset) {
+		msleep(10);
+		gpiod_set_value(reset, 1);
+		msleep(100);
 	}
 
 	/* Get firmware version */
