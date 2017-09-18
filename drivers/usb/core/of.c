@@ -20,6 +20,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/usb/of.h>
+#include <linux/usb.h>
 
 /**
  * usb_of_get_child_node - Find the device node match port number
@@ -73,3 +74,14 @@ struct device *usb_of_get_companion_dev(struct device *dev)
 	return pdev ? &pdev->dev : NULL;
 }
 EXPORT_SYMBOL_GPL(usb_of_get_companion_dev);
+
+int usb_of_get_removable(struct device_node *node)
+{
+	u32 removable;
+
+	if (!of_property_read_u32(node, "removable", &removable))
+		return removable ? USB_DEVICE_REMOVABLE : USB_DEVICE_FIXED;
+
+	return -ENOENT;
+}
+EXPORT_SYMBOL_GPL(usb_of_get_removable);
