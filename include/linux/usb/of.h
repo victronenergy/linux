@@ -24,6 +24,7 @@ bool usb_of_has_combined_node(struct usb_device *udev);
 struct device_node *usb_of_get_interface_node(struct usb_device *udev,
 		u8 config, u8 ifnum);
 struct device *usb_of_get_companion_dev(struct device *dev);
+int usb_of_get_removable(struct device_node *np);
 #else
 static inline enum usb_dr_mode
 of_usb_get_dr_mode_by_phy(struct device_node *np, int arg0)
@@ -56,6 +57,10 @@ usb_of_get_interface_node(struct usb_device *udev, u8 config, u8 ifnum)
 static inline struct device *usb_of_get_companion_dev(struct device *dev)
 {
 	return NULL;
+}
+static inline int usb_of_get_removable(struct device_node *np)
+{
+	return -ENODEV;
 }
 #endif
 
