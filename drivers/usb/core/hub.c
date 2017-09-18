@@ -20,6 +20,7 @@
 #include <linux/usb.h>
 #include <linux/usbdevice_fs.h>
 #include <linux/usb/hcd.h>
+#include <linux/usb/of.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/quirks.h>
 #include <linux/workqueue.h>
@@ -2345,6 +2346,15 @@ static void set_usb_port_removable(struct usb_device *udev)
 	u8 port = udev->portnum;
 	u16 wHubCharacteristics;
 	bool removable = true;
+
+	if (udev->dev.of_node) {
+		int rem = usb_of_get_removable(udev->dev.of_node);
+
+		if (rem > 0) {
+			udev->removable = rem;
+			return;
+		}
+	}
 
 	if (!hdev)
 		return;
