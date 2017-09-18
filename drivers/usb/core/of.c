@@ -10,6 +10,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/usb/of.h>
+#include <linux/usb.h>
 
 /**
  * usb_of_get_device_node() - get a USB device node
@@ -105,3 +106,14 @@ usb_of_get_interface_node(struct usb_device *udev, u8 config, u8 ifnum)
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(usb_of_get_interface_node);
+
+int usb_of_get_removable(struct device_node *node)
+{
+	u32 removable;
+
+	if (!of_property_read_u32(node, "removable", &removable))
+		return removable ? USB_DEVICE_REMOVABLE : USB_DEVICE_FIXED;
+
+	return -ENOENT;
+}
+EXPORT_SYMBOL_GPL(usb_of_get_removable);
