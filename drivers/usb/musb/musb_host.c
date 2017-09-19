@@ -2751,7 +2751,8 @@ int musb_host_alloc(struct musb *musb)
 	struct device	*dev = musb->controller;
 
 	/* usbcore sets dev->driver_data to hcd, and sometimes uses that... */
-	musb->hcd = usb_create_hcd(&musb_hc_driver, dev, dev_name(dev));
+	musb->hcd = __usb_create_hcd(&musb_hc_driver, dev->parent, dev,
+				     dev_name(dev), NULL);
 	if (!musb->hcd)
 		return -EINVAL;
 
