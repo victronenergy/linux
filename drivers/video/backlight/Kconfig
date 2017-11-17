@@ -209,6 +209,13 @@ config BACKLIGHT_LOCOMO
 	  If you have a Sharp Zaurus SL-5500 (Collie) or SL-5600 (Poodle) say y to
 	  enable the LCD/backlight driver.
 
+config BACKLIGHT_LT3593
+	tristate "Linear Technology LT3593 backlight driver"
+	depends on GPIOLIB || COMPILE_TEST
+	help
+	  Say y to enable the backlight driver for the Linear Technology
+	  LT3593 LED driver.
+
 config BACKLIGHT_OMAP1
 	tristate "OMAP1 PWL-based LCD Backlight"
 	depends on ARCH_OMAP1
