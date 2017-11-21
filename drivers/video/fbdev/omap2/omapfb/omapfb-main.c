@@ -1862,6 +1862,14 @@ static void omapfb_free_resources(struct omapfb2_device *fbdev)
 	dev_set_drvdata(fbdev->dev, NULL);
 }
 
+static int fbskip = 0;
+static int __init early_parse_fbskip(char *p)
+{
+	fbskip = 1;
+	return 0;
+}
+early_param("fbskip", early_parse_fbskip);
+
 static int omapfb_create_framebuffers(struct omapfb2_device *fbdev)
 {
 	int r, i;
@@ -1934,14 +1942,16 @@ static int omapfb_create_framebuffers(struct omapfb2_device *fbdev)
 		}
 	}
 
-	for (i = 0; i < fbdev->num_fbs; i++) {
-		struct fb_info *fbi = fbdev->fbs[i];
-		struct omapfb_info *ofbi = FB2OFB(fbi);
+	if (!fbskip) {
+		for (i = 0; i < fbdev->num_fbs; i++) {
+			struct fb_info *fbi = fbdev->fbs[i];
+			struct omapfb_info *ofbi = FB2OFB(fbi);
 
-		if (ofbi->region->size == 0)
-			continue;
+			if (ofbi->region->size == 0)
+				continue;
 
-		omapfb_clear_fb(fbi);
+			omapfb_clear_fb(fbi);
+		}
 	}
 
 	DBG("fb_infos initialized\n");
