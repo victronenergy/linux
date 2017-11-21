@@ -51,6 +51,9 @@ static unsigned int auto_update_freq;
 module_param(auto_update, bool, 0);
 module_param(auto_update_freq, uint, 0644);
 
+static bool noclear;
+module_param(noclear, bool, 0);
+
 #ifdef DEBUG
 bool omapfb_debug;
 module_param_named(debug, omapfb_debug, bool, 0644);
@@ -1966,14 +1969,16 @@ static int omapfb_create_framebuffers(struct omapfb2_device *fbdev)
 		}
 	}
 
-	for (i = 0; i < fbdev->num_fbs; i++) {
-		struct fb_info *fbi = fbdev->fbs[i];
-		struct omapfb_info *ofbi = FB2OFB(fbi);
+	if (!noclear) {
+		for (i = 0; i < fbdev->num_fbs; i++) {
+			struct fb_info *fbi = fbdev->fbs[i];
+			struct omapfb_info *ofbi = FB2OFB(fbi);
 
-		if (ofbi->region->size == 0)
-			continue;
+			if (ofbi->region->size == 0)
+				continue;
 
-		omapfb_clear_fb(fbi);
+			omapfb_clear_fb(fbi);
+		}
 	}
 
 	DBG("fb_infos initialized\n");
