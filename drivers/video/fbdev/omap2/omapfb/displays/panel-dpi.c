@@ -198,11 +198,14 @@ static int panel_dpi_probe_of(struct platform_device *pdev)
 {
 	struct panel_drv_data *ddata = platform_get_drvdata(pdev);
 	struct device_node *node = pdev->dev.of_node;
+	struct device_node *ep;
+	struct device_node *src_ep;
 	struct omap_dss_device *in;
 	int r;
 	struct display_timing timing;
 	struct videomode vm;
 	struct gpio_desc *gpio;
+	u32 datalines;
 
 	gpio = devm_gpiod_get_optional(&pdev->dev, "enable", GPIOD_OUT_LOW);
 	if (IS_ERR(gpio))
@@ -228,6 +231,23 @@ static int panel_dpi_probe_of(struct platform_device *pdev)
 	}
 
 	ddata->in = in;
+
+	ep = omapdss_of_get_first_endpoint(node);
+	if (!ep)
+		return -EINVAL;
+
+	src_ep = of_parse_phandle(ep, "remote-endpoint", 0);
+	if (!src_ep) {
+		of_node_put(ep);
+		return -EINVAL;
+	}
+
+	of_node_put(ep);
+
+	if (!of_property_read_u32(src_ep, "data-lines", &datalines))
+		ddata->data_lines = datalines;
+
+	of_node_put(src_ep);
 
 	return 0;
 }
