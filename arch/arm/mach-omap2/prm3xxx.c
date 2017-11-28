@@ -464,6 +464,10 @@ static u32 omap3xxx_prm_read_reset_sources(void)
 	return r;
 }
 
+u32 ccgx_read_reset_sources(void)
+{
+	return omap2_prm_read_mod_reg(OMAP3430_GR_MOD, OMAP2_RM_RSTST);
+}
 /**
  * omap3xxx_prm_iva_idle - ensure IVA is in idle so it can be put into retention
  *
