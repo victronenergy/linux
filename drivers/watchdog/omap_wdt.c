@@ -60,6 +60,8 @@ module_param(early_enable, bool, 0);
 MODULE_PARM_DESC(early_enable,
 	"Watchdog is started on module insertion (default=0)");
 
+extern u32 ccgx_read_reset_sources(void);
+
 struct omap_wdt_dev {
 	struct watchdog_device wdog;
 	void __iomem    *base;          /* physical */
@@ -229,7 +231,6 @@ static const struct watchdog_ops omap_wdt_ops = {
 
 static int omap_wdt_probe(struct platform_device *pdev)
 {
-	struct omap_wd_timer_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct resource *res;
 	struct omap_wdt_dev *wdev;
 	int ret;
@@ -265,11 +266,8 @@ static int omap_wdt_probe(struct platform_device *pdev)
 	pm_runtime_enable(wdev->dev);
 	pm_runtime_get_sync(wdev->dev);
 
-	if (pdata && pdata->read_reset_sources) {
-		u32 rs = pdata->read_reset_sources();
-		if (rs & (1 << OMAP_MPU_WD_RST_SRC_ID_SHIFT))
-			wdev->wdog.bootstatus = WDIOF_CARDRESET;
-	}
+	/* (ab)use WDIOC_GETBOOTSTATUS to report all reset sources */
+	wdev->wdog.bootstatus = ccgx_read_reset_sources();
 
 	if (!early_enable)
 		omap_wdt_disable(wdev);
