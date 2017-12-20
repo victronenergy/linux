@@ -47,11 +47,17 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu@0 {
+		cpu0: cpu@0 {
 			compatible = "arm,cortex-a53", "arm,armv8";
 			device_type = "cpu";
 			reg = <0>;
+			clocks = <&ccu CLK_CPUX>;
+			clock-names = "cpu";
+			clock-latency = <244144>; /* 8 32k periods */
 			enable-method = "psci";
+			operating-points-v2 = <&cpu_opp_table>;
+			cpu-supply = <&reg_cpu_fallback>;
+			#cooling-cells = <2>;
 		};
 
 		cpu@1 {
@@ -59,6 +65,7 @@
 			device_type = "cpu";
 			reg = <1>;
 			enable-method = "psci";
+			operating-points-v2 = <&cpu_opp_table>;
 		};
 
 		cpu@2 {
@@ -66,6 +73,7 @@
 			device_type = "cpu";
 			reg = <2>;
 			enable-method = "psci";
+			operating-points-v2 = <&cpu_opp_table>;
 		};
 
 		cpu@3 {
@@ -73,12 +81,20 @@
 			device_type = "cpu";
 			reg = <3>;
 			enable-method = "psci";
+			operating-points-v2 = <&cpu_opp_table>;
 		};
 	};
 
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
+	};
+
+	reg_cpu_fallback: reg_cpu_fallback  {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-cpux-dummy";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
 	};
 
 	timer {
