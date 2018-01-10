@@ -1,0 +1,234 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2019 Mans Rullgard <mans@mansr.com>
+ */
+
+/ {
+	aliases {
+		/*
+		 * Order the ports from port 1 of top1, then go
+		 * counterclockwise over both of them.
+		 */
+		usb-serial1 = &usb_top1_serial1;
+		usb-serial2 = &usb_top1_serial2;
+		usb-serial3 = &usb_top1_serial3;
+		usb-serial4 = &usb_top1_serial4;
+		usb-serial5 = &usb_top1_serial5;
+		usb-serial6 = &usb_top1_serial6;
+
+		usb-serial7 = &usb_top2_serial1;
+		usb-serial8 = &usb_top2_serial2;
+		usb-serial9 = &usb_top2_serial3;
+		usb-serial10 = &usb_top2_serial4;
+		usb-serial11 = &usb_top2_serial5;
+		usb-serial12 = &usb_top2_serial6;
+
+		usb-serial13 = &usb_top2_serial7;
+		usb-serial14 = &usb_top2_serial8;
+		usb-serial15 = &usb_top2_serial9;
+		usb-serial16 = &usb_top2_serial10;
+		usb-serial17 = &usb_top2_serial11;
+		usb-serial18 = &usb_top2_serial12;
+
+		usb-serial19 = &usb_top1_serial7;
+		usb-serial20 = &usb_top1_serial8;
+		usb-serial21 = &usb_top1_serial9;
+		usb-serial22 = &usb_top1_serial10;
+		usb-serial23 = &usb_top1_serial11;
+		usb-serial24 = &usb_top1_serial12;
+
+		usb-serial25 = &usb_vebus;
+	};
+};
+
+&ehci3 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	box-hub@1 {
+		compatible = "usb409,5a";
+		reg = <1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/*
+		 * Order the ports on their physical location, serial1
+		 * is at the "top right", near the sd card. Numbers
+		 * increment counterclockwise.
+		 */
+
+		top1-hub@1 {
+			compatible = "usb424,2513";
+			reg = <1>;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			usb-serial@1 {
+				compatible = "usb403,6011";
+				reg = <1>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top1_serial6: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top1_serial5: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top1_serial4: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top1_serial3: port@3 {
+					reg = <3 1>; // 3-1.1.1:1.3
+				};
+			};
+
+			usb-serial@2 {
+				compatible = "usb403,6011";
+				reg = <2>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top1_serial2: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top1_serial1: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top1_serial12: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top1_serial11: port@3 {
+					reg = <3 1>;
+				};
+			};
+
+			usb-serial@3 {
+				compatible = "usb403,6011";
+				reg = <3>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top1_serial10: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top1_serial7: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top1_serial8: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top1_serial9: port@3 {
+					reg = <3 1>;
+				};
+			};
+		};
+
+
+		/* see top1, but for top2 and reg = <2> */
+		top2-hub@1 {
+			compatible = "usb424,2513";
+			reg = <2>;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			usb-serial@1 {
+				compatible = "usb403,6011";
+				reg = <1>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top2_serial6: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top2_serial5: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top2_serial4: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top2_serial3: port@3 {
+					reg = <3 1>; // 3-1.1.1:1.3
+				};
+			};
+
+			usb-serial@2 {
+				compatible = "usb403,6011";
+				reg = <2>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top2_serial2: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top2_serial1: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top2_serial12: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top2_serial11: port@3 {
+					reg = <3 1>;
+				};
+			};
+
+			usb-serial@3 {
+				compatible = "usb403,6011";
+				reg = <3>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+
+				usb_top2_serial10: port@0 {
+					reg = <0 1>;
+				};
+
+				usb_top2_serial7: port@1 {
+					reg = <1 1>;
+				};
+
+				usb_top2_serial8: port@2 {
+					reg = <2 1>;
+				};
+
+				usb_top2_serial9: port@3 {
+					reg = <3 1>;
+				};
+			};
+		};
+
+		usb_vebus: vebus@3 {
+			compatible = "usb403,6015";
+			reg = <3>;
+		};
+	};
+};
+
+&uart2 {
+	status = "okay";
+};
