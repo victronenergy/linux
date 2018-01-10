@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2018 Mans Rullgard <mans@mansr.com>
+ */
+
+#include "sun8i-h3-nanopi-ve-common.dtsi"
+
+/ {
+	aliases {
+		usb-serial0 = &slcan;
+	};
+
+	reg_usb2_vbus: regulator-usb2-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb2-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&r_pio 0 11 GPIO_ACTIVE_HIGH>; /* PL11 */
+		enable-active-high;
+	};
+};
+
+&ohci2 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	slcan: usb-serial@1 {
+		compatible = "usb403,6015";
+		reg = <1>;
+
+		can {
+			compatible = "slcan";
+			current-speed = <1500000>;
+			flow-control;
+			err-rst-on-open;
+		};
+	};
+};
+
+&usbphy {
+	usb2_vbus-supply = <&reg_usb2_vbus>;
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart3_pins>;
+};
+
+&mixer0 {
+	status = "disabled";
+};
+
+&tcon0 {
+	status = "disabled";
+};
