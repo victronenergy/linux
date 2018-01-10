@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2018 Mans Rullgard <mans@mansr.com>
+ */
+
+#include "sun8i-h3-nanopi-neo-core.dtsi"
+
+/ {
+	compatible = "friendlyarm,nanopi-neo-core", "allwinner,sun8i-h3";
+
+	aliases {
+		nvmem0 = &board_id;
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		ethernet0 = &emac;
+		i2c0 = &i2c0;
+		watchdog0 = &ext_wdt;
+		watchdog1 = &wdt0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	ext_wdt: watchdog {
+		compatible = "linux,wdt-gpio";
+		gpios = <&pio 2 0 GPIO_ACTIVE_HIGH>;
+		hw_algo = "toggle";
+		hw_margin_ms = <30000>;
+		always-running;
+	};
+};
+
+&pio {
+	i2c0_gpio_pins: i2c0-gpio-pins {
+		pins = "PA11", "PA12";
+		function = "i2c0";
+	};
+};
+
+&i2c0 {
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-1 = <&i2c0_gpio_pins>;
+	scl-gpios = <&pio 0 11 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>; /* PA11 */
+	sda-gpios = <&pio 0 12 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>; /* PA12 */
+	status = "okay";
+
+	board_id: eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+		read-only;
+		vcc-supply = <&reg_vdd_sys_3v3>;
+	};
+
+	rtc1: rtc@68 {
+		compatible = "nxp,pcf8523";
+		reg = <0x68>;
+	};
+};
+
+&emac {
+	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pa_pins>;
+	status = "okay";
+};
+
+&ehci1 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	wireless-controller@1 {
+		compatible = "usbbda,b720";
+		reg = <1>;
+
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		bluetooth@0 {
+			compatible = "usbifbda,b720.config1.0";
+			reg = <0 1>;
+			status = "disabled";
+		};
+
+		bluetooth@1 {
+			compatible = "usbifbda,b720.config1.1";
+			reg = <1 1>;
+			status = "disabled";
+		};
+	};
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+&rtc {
+	status = "disabled";
+};

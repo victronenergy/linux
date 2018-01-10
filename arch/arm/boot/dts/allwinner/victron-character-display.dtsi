@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2018 Mans Rullgard <mans@mansr.com>
+ */
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	display {
+		compatible = "hit,hd44780";
+
+		data-gpios = <&disp_gpio 0 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 1 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 2 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 3 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 4 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 5 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 6 GPIO_ACTIVE_HIGH>,
+			     <&disp_gpio 7 GPIO_ACTIVE_HIGH>;
+		enable-gpios = <&disp_gpio 8 GPIO_ACTIVE_HIGH>;
+		rs-gpios = <&disp_gpio 10 GPIO_ACTIVE_HIGH>;
+		rw-gpios = <&disp_gpio 9 GPIO_ACTIVE_HIGH>;
+
+		backlight-gpios = <&pio 0 6 GPIO_ACTIVE_HIGH>;
+
+		display-height-chars = <2>;
+		display-width-chars = <16>;
+	};
+
+	disp_keys {
+		compatible = "gpio-keys";
+
+		key-up {
+			label = "UP";
+			linux,code = <KEY_UP>;
+			gpios = <&disp_gpio 12 GPIO_ACTIVE_LOW>;
+		};
+
+		key-left {
+			label = "LEFT";
+			linux,code = <KEY_LEFT>;
+			gpios = <&disp_gpio 13 GPIO_ACTIVE_LOW>;
+		};
+
+		key-right {
+			label = "RIGHT";
+			linux,code = <KEY_RIGHT>;
+			gpios = <&disp_gpio 14 GPIO_ACTIVE_LOW>;
+		};
+
+		key-down {
+			label = "DOWN";
+			linux,code = <KEY_DOWN>;
+			gpios = <&disp_gpio 15 GPIO_ACTIVE_LOW>;
+		};
+	};
+};
+
+&i2c0 {
+	disp_gpio: gpio@20 {
+		compatible = "nxp,pca9555";
+		reg = <0x20>;
+		interrupt-parent = <&pio>;
+		interrupts = <6 11 IRQ_TYPE_LEVEL_LOW>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		gpio-line-names = "display_sensor";
+		gpio-line-numbers = <11>;
+		vcc-supply = <&reg_vdd_5v>;
+	};
+
+	backlight@51 {
+		compatible = "victronenergy,gxdisp-backlight";
+		reg = <0x51>;
+		default-on;
+		default-brightness = <15>;
+	};
+};
