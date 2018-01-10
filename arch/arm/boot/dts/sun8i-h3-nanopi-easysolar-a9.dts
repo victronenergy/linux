@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2019 Mans Rullgard <mans@mansr.com>
+ */
+
+#include "sun8i-h3-nanopi-easysolar-base-a9.dtsi"
+#include "victron-character-display.dtsi"
+
+/ {
+	model = "EasySolar-II";
+	compatible = "victronenergy,easysolar-a9",
+		     "friendlyarm,nanopi-neo-core",
+		     "allwinner,sun8i-h3";
+};
+
+&ehci2 {
+	status = "okay";
+};
+
+&ohci2 {
+	status = "okay";
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&uart3 {
+	status = "okay";
+};
+
+&pio {
+	gpio-line-names = "vebus_standby", "mkx_rst";
+	gpio-line-numbers = <15>, <16>;
+};

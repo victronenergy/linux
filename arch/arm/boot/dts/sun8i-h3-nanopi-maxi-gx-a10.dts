@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2019 Mans Rullgard <mans@mansr.com>
+ */
+
+#include "sun8i-h3-nanopi-easysolar-base-a10.dtsi"
+#include "victron-character-display.dtsi"
+#include "victron-i2c-expander.dtsi"
+#include "victron-maxi-gx.dtsi"
+
+/ {
+	model = "Maxi GX";
+	compatible = "victronenergy,maxi-gx-a10",
+		     "friendlyarm,nanopi-neo-core",
+		     "allwinner,sun8i-h3";
+};

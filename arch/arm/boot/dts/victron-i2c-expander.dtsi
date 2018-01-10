@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2019 Mans Rullgard <mans@mansr.com>
+ */
+
+&i2c0 {
+	gpio@21 {
+		compatible = "nxp,pca9555";
+		reg = <0x21>;
+		interrupt-parent = <&pio>;
+		interrupts = <6 11 IRQ_TYPE_LEVEL_LOW>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		gpio-line-names =
+			"digital_input_1",
+			"digital_input_2",
+			"digital_input_3",
+			"digital_input_4",
+			"relay_1",
+			"relay_2";
+	};
+};
