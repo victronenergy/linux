@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2018 Mans Rullgard <mans@mansr.com>
+ */
+
+#include "sun8i-h3-nanopi-ve-common.dtsi"
+#include "victron-character-display.dtsi"
+
+/ {
+	model = "PayGo";
+	compatible = "victronenergy,paygo",
+		     "friendlyarm,nanopi-neo-core",
+		     "allwinner,sun8i-h3";
+};
+
+&ehci2 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	modem@1 {
+		compatible = "usb5c6,9000";
+		reg = <1>;
+	};
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
+	status = "okay";
+};
+
+&pio {
+	gpio-line-names = "modem_rst", "digital_output_1", "usb_vbus";
+	gpio-line-numbers = <21>, <66>, <141>;
+};
