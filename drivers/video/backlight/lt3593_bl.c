@@ -17,6 +17,7 @@
 
 struct lt3593_bl_data {
 	struct gpio_desc	*gpio;
+	struct gpio_desc	*en_gpio;
 };
 
 static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
@@ -67,7 +68,12 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 	if (!lt)
 		return -ENOMEM;
 
-	lt->gpio = devm_gpiod_get(&pdev->dev, NULL, GPIOD_ASIS);
+	lt->en_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
+					      GPIOD_ASIS);
+	if (IS_ERR(lt->en_gpio))
+		return PTR_ERR(lt->en_gpio);
+
+	lt->gpio = devm_gpiod_get(&pdev->dev, NULL, GPIOD_OUT_HIGH);
 	if (IS_ERR(lt->gpio))
 		return PTR_ERR(lt->gpio);
 
