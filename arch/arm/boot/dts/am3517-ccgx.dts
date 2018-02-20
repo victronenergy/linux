@@ -21,6 +21,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&backlight_pins>;
 		gpios = <&gpio2 21 GPIO_ACTIVE_HIGH>;
+		enable-gpio = <&gpio2 10 GPIO_ACTIVE_LOW>;
 		default-brightness-level = <31>;
 		default-on;
 	};
@@ -31,9 +32,7 @@
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&lcd_pins>;
-		enable-gpios = <&gpio5 10 GPIO_ACTIVE_LOW>,	/* gpio_138 */
-			       <&gpio2 10 GPIO_ACTIVE_LOW>,	/* gpio_42 */
-			       <&gpio5 11 GPIO_ACTIVE_HIGH>;	/* gpio_139 */
+		enable-gpios = <&gpio5 11 GPIO_ACTIVE_HIGH>;	/* gpio_139 */
 
 		backlight = <&backlight>;
 
@@ -170,6 +169,7 @@
 
 	backlight_pins: backlight_pins {
 		pinctrl-single,pins = <
+			OMAP3_CORE1_IOPAD(0x208A, PIN_OUTPUT | MUX_MODE4)	/* gpmc_a9.gpio_42 */
 			OMAP3_CORE1_IOPAD(0x20B2, PIN_OUTPUT | MUX_MODE4)	/* gpmc_ncs2.gpio_53 */
 		>;
 	};
@@ -238,7 +238,6 @@
 	lcd_pins: lcd_pins {
 		pinctrl-single,pins = <
 			OMAP3_CORE1_IOPAD(0x216a, PIN_OUTPUT | MUX_MODE4)	/* sdmmc2_dat7.gpio_139 */
-			OMAP3_CORE1_IOPAD(0x208A, PIN_OUTPUT | MUX_MODE4)	/* gpmc_a9.gpio_42 */
 		>;
 	};
 
