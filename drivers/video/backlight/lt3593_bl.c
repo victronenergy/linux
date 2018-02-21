@@ -10,6 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/delay.h>
+#include <linux/irqflags.h>
 #include <linux/platform_device.h>
 #include <linux/backlight.h>
 #include <linux/gpio.h>
@@ -21,6 +22,7 @@ struct lt3593_bl_data {
 
 static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
 {
+	long flags;
 	int i;
 
 	if (brightness == 0) {
@@ -28,12 +30,16 @@ static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
 		return;
 	}
 
+	local_irq_save(flags);
+
 	for (i = brightness; i < 32; i++) {
 		gpiod_set_value(lt->gpio, 0);
 		ndelay(300);
 		gpiod_set_value(lt->gpio, 1);
 		ndelay(300);
 	}
+
+	local_irq_restore(flags);
 }
 
 static int lt3593_bl_update(struct backlight_device *bl)
