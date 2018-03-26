@@ -149,7 +149,7 @@
 	gpio_pins: gpio_pins {
 		pinctrl-single,pins = <
 			/* buzzer */
-			0x04c (PIN_OUTPUT | MUX_MODE4)	/* gpio_35 */
+			0x04c (PIN_OUTPUT_PULLDOWN | MUX_MODE4)	/* gpio_35 */
 
 			/* hw revision */
 			0x1b4 (PIN_INPUT | MUX_MODE4)	/* gpio_94 */
@@ -157,13 +157,13 @@
 			0x1bc (PIN_INPUT | MUX_MODE4)	/* gpio_98 */
 
 			/* vebus_standby */
-			0x156 (PIN_OUTPUT | MUX_MODE4)	/* gpio_153 */
+			0x156 (PIN_OUTPUT_PULLUP | MUX_MODE4)	/* gpio_153 */
 
 			/* mk3_rst */
-			0x15a (PIN_OUTPUT | MUX_MODE4)	/* gpio_155 */
+			0x15a (PIN_OUTPUT_PULLDOWN | MUX_MODE4)	/* gpio_155 */
 
 			/* relay */
-			0x1ae (PIN_OUTPUT | MUX_MODE4)	/* gpio_182 */
+			0x1ae (PIN_OUTPUT_PULLDOWN | MUX_MODE4)	/* gpio_182 */
 		>;
 	};
 
