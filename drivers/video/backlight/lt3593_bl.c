@@ -75,11 +75,11 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	lt->en_gpio = devm_gpiod_get_optional(&pdev->dev, "enable",
-					      GPIOD_ASIS);
+					      GPIOD_OUT_HIGH);
 	if (IS_ERR(lt->en_gpio))
 		return PTR_ERR(lt->en_gpio);
 
-	lt->gpio = devm_gpiod_get(&pdev->dev, NULL, GPIOD_OUT_HIGH);
+	lt->gpio = devm_gpiod_get(&pdev->dev, NULL, GPIOD_ASIS);
 	if (IS_ERR(lt->gpio))
 		return PTR_ERR(lt->gpio);
 
