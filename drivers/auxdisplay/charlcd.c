@@ -475,12 +475,10 @@ static inline int handle_lcd_special_code(struct charlcd *lcd)
 		while (*esc) {
 			if (*esc == 'x') {
 				esc++;
-				if (kstrtoul(esc, 10, &priv->addr.x) < 0)
-					break;
+				priv->addr.x = simple_strtoul(esc, &esc, 10);
 			} else if (*esc == 'y') {
 				esc++;
-				if (kstrtoul(esc, 10, &priv->addr.y) < 0)
-					break;
+				priv->addr.y = simple_strtoul(esc, &esc, 10);
 			} else {
 				break;
 			}
