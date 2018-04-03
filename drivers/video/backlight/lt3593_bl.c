@@ -23,7 +23,7 @@ struct lt3593_bl_data {
 
 static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
 {
-	long flags;
+	unsigned long flags;
 	int i;
 
 	if (brightness == 0) {
