@@ -628,9 +628,6 @@ static int ti_hecc_rx_poll(struct napi_struct *napi, int quota)
 	u32 mbx_mask;
 	unsigned long pending_pkts, flags;
 
-	if (!netif_running(ndev))
-		return 0;
-
 	while ((pending_pkts = hecc_read(priv, HECC_CANRMP)) &&
 		num_pkts < quota) {
 		mbx_mask = BIT(priv->rx_next); /* next rx mailbox to process */
