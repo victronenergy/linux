@@ -623,20 +623,16 @@ static int ti_hecc_rx_poll(struct napi_struct *napi, int quota)
 			spin_unlock_irqrestore(&priv->mbx_lock, flags);
 		} else if (priv->rx_next == HECC_MAX_TX_MBOX - 1) {
 			priv->rx_next = HECC_RX_FIRST_MBOX;
-			break;
 		}
 	}
 
 	/* Enable packet interrupt if all pkts are handled */
-	if (hecc_read(priv, HECC_CANRMP) == 0) {
+	if (num_pkts < quota) {
 		napi_complete(napi);
 		/* Re-enable RX mailbox interrupts */
 		mbx_mask = hecc_read(priv, HECC_CANMIM);
 		mbx_mask |= HECC_TX_MBOX_MASK;
 		hecc_write(priv, HECC_CANMIM, mbx_mask);
-	} else {
-		/* repoll is done only if whole budget is used */
-		num_pkts = quota;
 	}
 
 	return num_pkts;
