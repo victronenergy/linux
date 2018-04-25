@@ -12,3 +12,8 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&dcan0_pins>;
 };
+
+// Disable the i2c2, uses the same pins as the CAN-bus
+&i2c2 {
+	status = "disabled";
+};
