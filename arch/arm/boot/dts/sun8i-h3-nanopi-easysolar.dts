@@ -53,7 +53,7 @@
 	};
 };
 
-&ehci3 {
+&ehci2 {
 	status = "disabled";
 };
 
