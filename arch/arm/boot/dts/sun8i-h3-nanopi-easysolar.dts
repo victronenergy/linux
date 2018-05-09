@@ -57,6 +57,17 @@
 	status = "disabled";
 };
 
+&ohci2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	serial@1 {
+		compatible = "usb403,6015";
+		reg = <1>;
+		removable = <0>;
+	};
+};
+
 &reg_usb2_vbus {
 	status = "okay";
 	gpio = <&r_pio 0 11 GPIO_ACTIVE_HIGH>; // GPIOL11 / VUSB_ENABLE
