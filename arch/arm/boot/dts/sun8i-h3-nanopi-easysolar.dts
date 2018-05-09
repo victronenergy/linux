@@ -44,6 +44,9 @@
 
 / {
 	model = "EasySolar-II";
+	compatible = "victronenergy,easysolar",
+		     "friendlyarm,nanopi-neo-core",
+		     "allwinner,sun8i-h3";
 };
 
 &r_pio {
