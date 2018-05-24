@@ -4,7 +4,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "ccgx";
+	model = "Color Control GX";
 	compatible = "technexion,am3517-tam3517", "ti,am3517", "ti,omap3";
 
 	aliases {
