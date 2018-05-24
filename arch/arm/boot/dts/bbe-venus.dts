@@ -5,7 +5,7 @@
 #include "bb-ve-cape.dtsi"
 
 / {
-	model = "SanCloud BeagleBone Enhanced with victronenergy cape";
+	model = "Venus GX";
 	compatible = "sancloud,am335x-boneenhanced", "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 

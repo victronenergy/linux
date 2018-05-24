@@ -5,7 +5,7 @@
 #include "bb-ve-cape.dtsi"
 
 / {
-	model = "GRIDLESS.octo";
+	model = "Octo GX";
 	compatible = "unipoin,gridless-octo", "ti,am335x-bone-black", "ti,am33xx";
 };
 
