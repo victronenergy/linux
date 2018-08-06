@@ -16,8 +16,10 @@
 #include <linux/mtd/nand.h>
 #include <linux/mtd/plat-ram.h>
 #include <linux/mmc/host.h>
+#include <linux/proc_fs.h>
 #include <linux/regulator/fixed.h>
 #include <linux/regulator/machine.h>
+#include <linux/sysfs.h>
 #include <linux/spi/ads7846.h>
 #include <linux/spi/spi.h>
 #include <linux/can/platform/ti_hecc.h>
@@ -808,6 +810,63 @@ static void __init ccgx_export_gpio(void)
 					ccgx_gpio_export[n].gpio);
 }
 
+static const char *model = "Color Control GX";
+static const char *compat = "technexion,am3517-tam3517ti,am3517ti,omap3";
+
+static ssize_t kobj_read_model(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", model);
+}
+
+static ssize_t kobj_read_compat(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", compat);
+}
+
+static struct kobj_attribute model_attribute =__ATTR(model, 0660, kobj_read_model, NULL);
+static struct kobj_attribute compat_attribute =__ATTR(compatible, 0660, kobj_read_compat, NULL);
+
+static int proc_read_model(char *buf, char **start, off_t offset, int count, int *eof, void *data)
+{
+	return sprintf(buf, model);
+}
+
+static int proc_read_compat(char *buf, char **start, off_t offset, int count, int *eof, void *data)
+{
+	return sprintf(buf, compat);
+}
+
+/* Create fake devicetree entries to compatible with dtb kernels */
+static void __init add_device_tree_paths(void)
+{
+	int error;
+
+	struct kobject *dt, *base;
+
+	dt = kobject_create_and_add("devicetree", firmware_kobj);
+	if (!dt) {
+		pr_debug("failed to create devicetree\n");
+		return;
+	}
+
+	base = kobject_create_and_add("base", dt);
+	if (!base) {
+		pr_debug("failed to create base\n");
+		return;
+	}
+
+	error = sysfs_create_file(base, &model_attribute.attr);
+	if (error)
+		pr_debug("failed to create model_kobj %d\n", error);
+
+	error = sysfs_create_file(base, &compat_attribute.attr);
+	if (error)
+		pr_debug("failed to create compat_kobj %d\n", error);
+
+	create_proc_read_entry("device-tree/model", 0, NULL, proc_read_model, NULL);
+	create_proc_read_entry("device-tree/compatible", 0, NULL, proc_read_compat, NULL);
+}
+
 static void __init ccgx_init(void)
 {
 	omap3_mux_init(board_mux, OMAP_PACKAGE_ZCN);
@@ -857,6 +916,8 @@ static void __init ccgx_init(void)
 	am3517_musb_init();
 
 	ccgx_export_gpio();
+
+	add_device_tree_paths();
 }
 
 static void __init init_late(void)
