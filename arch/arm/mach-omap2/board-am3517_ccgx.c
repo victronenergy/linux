@@ -780,7 +780,7 @@ static struct gpio ccgx_gpio_export[] = {
 
 static void __init ccgx_export_gpio(void)
 {
-	int n, r;
+	int n;
 
 	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++) {
 		if (ccgx_gpio_export[n].flags == GPIOF_IN)
@@ -797,17 +797,6 @@ static void __init ccgx_export_gpio(void)
 			omap_mux_init_gpio(ccgx_gpio_export[n].gpio,
 						OMAP_PIN_OUTPUT);
 	}
-
-	r = gpio_request_array(ccgx_gpio_export, ARRAY_SIZE(ccgx_gpio_export));
-	if (r) {
-		printk(KERN_WARNING "failed to request export gpio\n");
-		return;
-	}
-
-	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++)
-		if (gpio_export(ccgx_gpio_export[n].gpio, 0))
-			printk(KERN_WARNING "failed to export gpio %d\n",
-					ccgx_gpio_export[n].gpio);
 }
 
 static const char *model = "Color Control GX";
