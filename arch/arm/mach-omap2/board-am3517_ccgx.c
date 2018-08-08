@@ -156,164 +156,18 @@ static void __init ccgx_display_init(void)
 	}
 }
 
-static struct gptimer_pwm_dev gptimer9 = {
-	.id = 9,
-};
-
-static void __init gptimer9_pwm_set_frequency(struct gptimer_pwm_dev *pd)
-{
-	int frequency = 1024;
-
-	if (frequency > (pd->input_freq / 2))
-		frequency = pd->input_freq / 2;
-
-	pd->tldr = 0xFFFFFFFF - (pd->input_freq / frequency - 1);
-	omap_dm_timer_set_load(pd->timer, 1, pd->tldr);
-	pd->num_settings = 0xFFFFFFFE - pd->tldr;
-}
-
-static int gptimer9_pwm_set_duty_cycle(u32 duty_cycle)
-{
-	u32 new_tmar;
-
-	if (gptimer9.set != 1) {
-		printk("%s: pwm_init fail or not executed.\n", __FUNCTION__);
-		return -EINVAL;
+static struct platform_device backlight_device = {
+	.name	= "lt3593-backlight",
+	.id		= -1,
+	.dev = {
+		.init_name = "backlight",
 	}
-
-	if (duty_cycle > 100)
-		return -EINVAL;
-
-	if (duty_cycle == 0) {
-		if (gptimer9.current_val != 0) {
-			omap_dm_timer_stop(gptimer9.timer);
-			gptimer9.current_val = 0;
-		}
-		return 0;
-	}
-
-	new_tmar = duty_cycle * gptimer9.num_settings / 100;
-
-	if (new_tmar < 1)
-		new_tmar = 1;
-	else if (new_tmar > gptimer9.num_settings)
-		new_tmar = gptimer9.num_settings;
-
-	gptimer9.tmar = gptimer9.tldr + new_tmar;
-	omap_dm_timer_set_match(gptimer9.timer, 1, gptimer9.tmar);
-
-	if (gptimer9.current_val == 0)
-		omap_dm_timer_start(gptimer9.timer);
-
-	gptimer9.current_val = duty_cycle;
-
-	return 0;
-}
-
-
-static void gptimer9_pwm_timer_cleanup(void)
-{
-	printk(KERN_INFO "pwm: gptimer9_pwm_timer_cleanup\n");
-
-	if (gptimer9.timer) {
-		omap_dm_timer_free(gptimer9.timer);
-		gptimer9.timer = NULL;
-		gptimer9.set = 0;
-	}
-}
-
-static int __init gptimer9_pwm_timer_init(void)
-{
-	struct clk *fclk;
-
-	printk(KERN_INFO "pwm: omap_dm_timer_request_specific\n");
-	gptimer9.timer = omap_dm_timer_request_specific(gptimer9.id);
-
-	if (!gptimer9.timer)
-		goto timer_init_fail;
-
-	printk(KERN_INFO "pwm: omap_dm_timer_set_pwm\n");
-	omap_dm_timer_set_pwm(gptimer9.timer,
-				0,	/* ~SCPWM low when off */
-				1,	/* PT pulse toggle modulation */
-				OMAP_TIMER_TRIGGER_OVERFLOW_AND_COMPARE);
-
-	if (omap_dm_timer_set_source(gptimer9.timer, OMAP_TIMER_SRC_SYS_CLK))
-		goto timer_init_fail;
-
-	/* set the clock frequency */
-	fclk = omap_dm_timer_get_fclk(gptimer9.timer);
-	gptimer9.input_freq = clk_get_rate(fclk);
-	gptimer9_pwm_set_frequency(&gptimer9);
-	gptimer9.set = 1;
-
-	return 0;
-
-timer_init_fail:
-	gptimer9_pwm_timer_cleanup();
-	return -1;
-}
-
-int __init gptimer9_pwm_init(void)
-{
-	if (gptimer9_pwm_timer_init()) {
-		gptimer9_pwm_timer_cleanup();
-		return -1;
-	}
-
-	return 0;
-}
-
-static int backlight_set_status(struct backlight_device *bl)
-{
-	int level;
-
-	if (bl->props.fb_blank == FB_BLANK_UNBLANK &&
-		bl->props.power == FB_BLANK_UNBLANK)
-		level = bl->props.brightness;
-	else
-		level = 0;
-
-	return gptimer9_pwm_set_duty_cycle(level);
-}
-
-static int backlight_get_brightness(struct backlight_device *bl)
-{
-	if (bl->props.fb_blank == FB_BLANK_UNBLANK &&
-			bl->props.power == FB_BLANK_UNBLANK)
-		return bl->props.brightness;
-
-	return 0;
-}
-
-static const struct backlight_ops backlight_ops = {
-	.get_brightness	= backlight_get_brightness,
-	.update_status	= backlight_set_status,
-};
-
-static struct backlight_properties __initdata backlight_props = {
-	.type		= BACKLIGHT_RAW,
-	.max_brightness	= 100,
-	.brightness	= 100,
-	.power		= FB_BLANK_UNBLANK,
-	.fb_blank	= FB_BLANK_UNBLANK,
 };
 
 static void __init backlight_init(void)
 {
-	struct backlight_device *backlight;
-
-	backlight = backlight_device_register("bpp3-bl", NULL, NULL,
-					&backlight_ops, &backlight_props);
-	if (IS_ERR(backlight)) {
-		printk(KERN_ERR "backlight error %ld\n", PTR_ERR(backlight));
-		return;
-	}
-
-	if (!gptimer9_pwm_init()) {
-		gptimer9_pwm_set_duty_cycle(backlight_props.brightness);
-		omap_mux_init_signal("gpmc_ncs2", OMAP_MUX_MODE2);
-	}
+	omap_mux_init_signal("gpmc_ncs2", OMAP_MUX_MODE4);
+	platform_device_register(&backlight_device);
 }
 
 static struct gpio_keys_button ccgx_gpio_buttons[] = {
