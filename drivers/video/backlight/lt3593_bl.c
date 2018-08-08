@@ -14,28 +14,28 @@
 #include <linux/platform_device.h>
 #include <linux/backlight.h>
 #include <linux/gpio.h>
-#include <linux/gpio/consumer.h>
+#include <linux/fb.h>
 
 struct lt3593_bl_data {
-	struct gpio_desc	*gpio;
+	int gpio;
 };
 
 static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
 {
-	long flags;
+	unsigned long flags;
 	int i;
 
 	if (brightness == 0) {
-		gpiod_set_value(lt->gpio, 0);
+		gpio_set_value(lt->gpio, 0);
 		return;
 	}
 
 	local_irq_save(flags);
 
 	for (i = brightness; i < 32; i++) {
-		gpiod_set_value(lt->gpio, 0);
+		gpio_set_value(lt->gpio, 0);
 		ndelay(300);
-		gpiod_set_value(lt->gpio, 1);
+		gpio_set_value(lt->gpio, 1);
 		ndelay(300);
 	}
 
@@ -67,19 +67,20 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 	struct backlight_device *bl;
 	struct lt3593_bl_data *lt;
 	u32 brightness = 31;
-	int power = FB_BLANK_POWERDOWN;
+	int power = FB_BLANK_UNBLANK;
+	int ret;
 
 	lt = devm_kzalloc(&pdev->dev, sizeof(*bl), GFP_KERNEL);
 	if (!lt)
 		return -ENOMEM;
+	/* HACK */
+	lt->gpio = 53;
 
-	lt->gpio = devm_gpiod_get(&pdev->dev, NULL, GPIOD_ASIS);
-	if (IS_ERR(lt->gpio))
-		return PTR_ERR(lt->gpio);
-
-	if (gpiod_get_direction(lt->gpio) == GPIOF_DIR_OUT) {
-		if (gpiod_get_value(lt->gpio) == 1)
-			power = FB_BLANK_UNBLANK;
+	ret = devm_gpio_request_one(&pdev->dev, lt->gpio, GPIOF_DIR_OUT, "backlight");
+	if (ret) {
+		dev_err(&pdev->dev,
+			"Unable to get the backlight gpio.\n");
+		return ret;
 	}
 
 	if (node) {
@@ -102,7 +103,6 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 	bl->props.brightness = brightness;
 	bl->props.power = power;
 
-	gpiod_direction_output(lt->gpio, power == FB_BLANK_UNBLANK);
 	backlight_update_status(bl);
 
 	platform_set_drvdata(pdev, bl);
