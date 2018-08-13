@@ -637,19 +637,24 @@ static void __init ccgx_export_gpio(void)
 	int n;
 
 	for (n = 0; n < ARRAY_SIZE(ccgx_gpio_export); n++) {
-		if (ccgx_gpio_export[n].flags == GPIOF_IN)
-			/*
-			 * This can generate a "Multiple gpio paths (2) for
-			 * gpio##" info message. The OMAP am35xx_zcn_subset
-			 * has multiple definitions for the same pin. The mux
-			 * mode for the pins is set separately using
-			 * "omap_mux_init_signal" from ccgx_init
-			 */
-			omap_mux_init_gpio(ccgx_gpio_export[n].gpio,
-						OMAP_PIN_INPUT);
+		int flags = ccgx_gpio_export[n].flags;
+		int val;
+
+		if (flags == GPIOF_IN)
+			val = OMAP_PIN_INPUT;
+		else if (flags == GPIOF_OUT_INIT_HIGH)
+			val = OMAP_PIN_OUTPUT | OMAP_PULL_ENA | OMAP_PULL_UP;
 		else
-			omap_mux_init_gpio(ccgx_gpio_export[n].gpio,
-						OMAP_PIN_OUTPUT);
+			val = OMAP_PIN_OUTPUT | OMAP_PULL_ENA;
+
+		/*
+		 * This can generate a "Multiple gpio paths (2) for
+		 * gpio##" info message. The OMAP am35xx_zcn_subset
+		 * has multiple definitions for the same pin. The mux
+		 * mode for the pins is set separately using
+		 * "omap_mux_init_signal" from ccgx_init
+		 */
+		omap_mux_init_gpio(ccgx_gpio_export[n].gpio, val);
 	}
 }
 
