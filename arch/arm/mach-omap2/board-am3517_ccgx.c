@@ -591,6 +591,11 @@ static struct gpio ccgx_gpio_export[] = {
 		.label = "buzzer",
 	},
 	{
+		.gpio = 42,
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "backlight",
+	},
+	{
 		.gpio = 94,
 		.flags = GPIOF_IN,
 		.label = "hw_revR821",
