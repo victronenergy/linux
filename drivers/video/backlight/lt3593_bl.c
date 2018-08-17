@@ -18,6 +18,7 @@
 
 struct lt3593_bl_data {
 	int gpio;
+	int en_gpio;
 };
 
 static void lt3593_bl_config(struct lt3593_bl_data *lt, int brightness)
@@ -75,6 +76,7 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	/* HACK */
 	lt->gpio = 53;
+	lt->en_gpio = 42;
 
 	ret = devm_gpio_request_one(&pdev->dev, lt->gpio, GPIOF_DIR_OUT, "backlight");
 	if (ret) {
@@ -82,6 +84,15 @@ static int lt3593_bl_probe(struct platform_device *pdev)
 			"Unable to get the backlight gpio.\n");
 		return ret;
 	}
+
+	ret = devm_gpio_request_one(&pdev->dev, lt->en_gpio, GPIOF_DIR_OUT, "backlight_en");
+	if (ret) {
+		dev_err(&pdev->dev,
+			"Unable to get the backlight enable gpio.\n");
+		return ret;
+	}
+
+	gpio_set_value(lt->en_gpio, 0);
 
 	if (node) {
 		if (of_property_read_bool(node, "default-on"))
