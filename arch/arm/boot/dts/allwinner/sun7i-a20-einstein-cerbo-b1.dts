@@ -1,0 +1,180 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2018 Mans Rullgard <mans@mansr.com>
+ */
+
+/dts-v1/;
+
+#include "sun7i-a20-einstein-cerbo-common.dtsi"
+
+/ {
+	model = "Cerbo GX";
+	compatible = "victronenergy,cerbo-gx-b1",
+		     "cubietech,einstein",
+		     "allwinner,sun7i-a20";
+
+	can_clk: can-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <40000000>;
+	};
+};
+
+/* USB wifi/BT enable */
+&reg_usb0_vbus {
+	gpio = <&pio 3 2 GPIO_ACTIVE_HIGH>;		/* PD2 */
+};
+
+/* External USB port 3 + display power */
+&reg_usb1_vbus {
+	gpio = <&pio 3 1 GPIO_ACTIVE_HIGH>;		/* PD1 */
+};
+
+/* Internal USB hub VBUS detect */
+&reg_usb2_vbus {
+	gpio = <&pio 3 0 GPIO_ACTIVE_HIGH>;		/* PD0 */
+};
+
+&ext_wdt {
+	gpios = <&pio 0 11 GPIO_ACTIVE_HIGH>;		/* PA11 */
+};
+
+&mmc3 {
+	status = "disabled";
+};
+
+&touchscreen {
+	vcc-supply = <&reg_usb1_vbus>;
+	iovcc-supply = <&reg_usb1_vbus>;
+};
+
+&backlight {
+	vcc-supply = <&reg_usb1_vbus>;
+};
+
+&i2c3 {
+	status = "okay";
+
+	adc@48 {
+		compatible = "ti,tla2024";
+		reg = <0x48>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@4 {
+			reg = <4>;
+		};
+
+		channel@5 {
+			reg = <5>;
+		};
+
+		channel@6 {
+			reg = <6>;
+		};
+
+		channel@7 {
+			reg = <7>;
+		};
+	};
+
+	adc@49 {
+		compatible = "ti,tla2024";
+		reg = <0x49>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@4 {
+			reg = <4>;
+		};
+
+		channel@5 {
+			reg = <5>;
+		};
+
+		channel@6 {
+			reg = <6>;
+		};
+
+		channel@7 {
+			reg = <7>;
+		};
+	};
+};
+
+&spi2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi2_pb_pins>;
+	status = "okay";
+
+	assigned-clocks = <&ccu CLK_SPI2>;
+	assigned-clock-rates = <600000000>;
+
+	cs-gpios = <&pio 1 14 GPIO_ACTIVE_LOW>;		/* PB14 */
+
+	can1: can@0 {
+		compatible = "microchip,mcp2518fd";
+		reg = <0>;
+		spi-max-frequency = <15000000>;
+		clocks = <&can_clk>;
+		interrupt-parent = <&pio>;
+		interrupts = <8 13 IRQ_TYPE_LEVEL_LOW>;	/* PI13 */
+		microchip,rx-int-gpios = <&pio 8 14 GPIO_ACTIVE_LOW>; /* PI14 */
+	};
+};
+
+&uart2 {
+	status = "disabled";
+};
+
+&uart3 {
+	status = "disabled";
+};
+
+&usb_otg {
+	wireless-controller@1 {
+		compatible = "usbbda,d723";
+		reg = <1>;
+	};
+};
+
+&ehci0 {
+	status = "okay";
+};
+
+&ohci0 {
+	status = "okay";
+};
+
+&ehci1 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	hub@1 {
+		compatible = "usb424,2422";
+		reg = <1>;
+	};
+};
+
+&pio {
+	gpio-line-names =
+		"relay_1",
+		"relay_2",
+		"digital_input_3",
+		"digital_input_2",
+		"digital_input_1",
+		"digital_input_4",
+		"mkx_rst",
+		"vebus_standby";
+	gpio-line-numbers =
+		<4>,		/* PA4 */
+		<5>,		/* PA5 */
+		<224>,		/* PH0 */
+		<225>,		/* PH1 */
+		<226>,		/* PH2 */
+		<227>,		/* PH3 */
+		<122>,		/* PD26 */
+		<123>;		/* PD27 */
+};
