@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+
+/dts-v1/;
+
+#include "sun7i-a20-einstein-ccgx2.dts"
+
+/ {
+        model = "Cerbo-S GX";
+        compatible = "victronenergy,cerbo-gx-s",
+                     "cubietech,einstein",
+                     "allwinner,sun7i-a20";
+};
+
+// The atmel chip is not avialable on a Cerbo-S GX, so the second
+// CAN-bus on uart3 is not available, nor the ADC on i2c3.
+
+&uart3 {
+	status = "disabled";
+};
+
+&i2c3 {
+	status = "disabled";
+};
