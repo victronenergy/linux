@@ -1101,6 +1101,11 @@
 				function = "can";
 			};
 
+			can0_pins_b: can0@1 {
+				pins = "PA16", "PA17";
+				function = "can";
+			};
+
 			clk_out_a_pins_a: clk_out_a@0 {
 				pins = "PI12";
 				function = "clk_out_a";
