@@ -1327,13 +1327,28 @@
 				function = "uart5";
 			};
 
+			uart5_pins_b: uart5@1 {
+				pins = "PH6", "PH7";
+				function = "uart5";
+			};
+
 			uart6_pins_a: uart6@0 {
 				pins = "PI12", "PI13";
 				function = "uart6";
 			};
 
+			uart6_pins_b: uart6@1 {
+				pins = "PA12", "PA13";
+				function = "uart6";
+			};
+
 			uart7_pins_a: uart7@0 {
 				pins = "PI20", "PI21";
+				function = "uart7";
+			};
+
+			uart7_pins_b: uart7@1 {
+				pins = "PA14", "PA15";
 				function = "uart7";
 			};
 		};
