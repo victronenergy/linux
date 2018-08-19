@@ -154,6 +154,10 @@ static void __init ccgx_display_init(void)
 	if (r) {
 		pr_err("Failed to register DSS device\n");
 	}
+
+	omap_mux_init_gpio(139, OMAP_PIN_OUTPUT | OMAP_PULL_ENA | OMAP_PULL_UP);
+	gpio_request(139, "lcd_pwron");
+	gpio_direction_output(139, 1);
 }
 
 static struct platform_device backlight_device = {
