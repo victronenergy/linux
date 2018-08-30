@@ -69,6 +69,7 @@ struct gpadc_data {
 	bool		has_bus_rst;
 	bool		has_mod_clk;
 	u32		temp_data_base;
+	int		sensor_count;
 };
 
 static irqreturn_t sun4i_gpadc_data_irq_handler(int irq, void *dev_id);
@@ -84,6 +85,7 @@ static const struct gpadc_data sun4i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.sensor_count = 1,
 };
 
 static const struct gpadc_data sun5i_gpadc_data = {
@@ -97,6 +99,7 @@ static const struct gpadc_data sun5i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.sensor_count = 1,
 };
 
 static const struct gpadc_data sun6i_gpadc_data = {
@@ -110,6 +113,7 @@ static const struct gpadc_data sun6i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.sensor_count = 1,
 };
 
 static const struct gpadc_data sun8i_a33_gpadc_data = {
@@ -117,6 +121,13 @@ static const struct gpadc_data sun8i_a33_gpadc_data = {
 	.temp_scale = 162,
 	.tp_mode_en = SUN8I_A33_GPADC_CTRL1_CHOP_TEMP_EN,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.sensor_count = 1,
+};
+
+struct sun4i_sensor_tzd {
+	struct sun4i_gpadc_iio		*info;
+	struct thermal_zone_device	*tzd;
+	unsigned int			sensor_id;
 };
 
 struct sun4i_gpadc_iio {
@@ -130,7 +141,7 @@ struct sun4i_gpadc_iio {
 	const struct gpadc_data		*data;
 	/* prevents concurrent reads of temperature and ADC */
 	struct mutex			mutex;
-	struct thermal_zone_device	*tzd;
+	struct sun4i_sensor_tzd		tzds[MAX_SENSOR_COUNT];
 	struct device			*sensor_device;
 	struct clk			*bus_clk;
 	struct clk			*mod_clk;
@@ -280,7 +291,8 @@ static int sun4i_gpadc_adc_read(struct iio_dev *indio_dev, int channel,
 			SUN4I_GPADC_IRQ_FIFO_DATA);
 }
 
-static int sun4i_gpadc_temp_read(struct iio_dev *indio_dev, int *val)
+static int sun4i_gpadc_temp_read(struct iio_dev *indio_dev, int *val,
+				int sensor)
 {
 	struct sun4i_gpadc_iio *info = iio_priv(indio_dev);
 
@@ -290,7 +302,8 @@ static int sun4i_gpadc_temp_read(struct iio_dev *indio_dev, int *val)
 
 	pm_runtime_get_sync(indio_dev->dev.parent);
 
-	regmap_read(info->regmap, info->data->temp_data_base, val);
+	regmap_read(info->regmap, info->data->temp_data_base + 0x4 * sensor,
+			val);
 
 	pm_runtime_mark_last_busy(indio_dev->dev.parent);
 	pm_runtime_put_autosuspend(indio_dev->dev.parent);
@@ -334,7 +347,7 @@ static int sun4i_gpadc_read_raw(struct iio_dev *indio_dev,
 			ret = sun4i_gpadc_adc_read(indio_dev, chan->channel,
 						   val);
 		else
-			ret = sun4i_gpadc_temp_read(indio_dev, val);
+			ret = sun4i_gpadc_temp_read(indio_dev, val, 0);
 
 		if (ret)
 			return ret;
@@ -420,10 +433,11 @@ static int sun4i_gpadc_runtime_resume(struct device *dev)
 
 static int sun4i_gpadc_get_temp(void *data, int *temp)
 {
-	struct sun4i_gpadc_iio *info = data;
+	struct sun4i_sensor_tzd *tzd = data;
+	struct sun4i_gpadc_iio *info = tzd->info;
 	int val, scale, offset;
 
-	if (sun4i_gpadc_temp_read(info->indio_dev, &val))
+	if (sun4i_gpadc_temp_read(info->indio_dev, &val, tzd->sensor_id))
 		return -ETIMEDOUT;
 
 	sun4i_gpadc_temp_scale(info->indio_dev, &scale);
@@ -569,7 +583,7 @@ static int sun4i_gpadc_probe(struct platform_device *pdev)
 {
 	struct sun4i_gpadc_iio *info;
 	struct iio_dev *indio_dev;
-	int ret;
+	int ret, i;
 
 	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*info));
 	if (!indio_dev)
@@ -603,18 +617,24 @@ static int sun4i_gpadc_probe(struct platform_device *pdev)
 	pm_runtime_set_suspended(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
-	info->tzd = thermal_zone_of_sensor_register(info->sensor_device,
-						    0, info,
-						    &sun4i_ts_tz_ops);
-	/*
-	 * Do not fail driver probing when failing to register in
-	 * thermal because no thermal DT node is found.
-	 */
-	if (IS_ERR(info->tzd) && PTR_ERR(info->tzd) != -ENODEV) {
-		dev_err(&pdev->dev,
-			"could not register thermal sensor: %ld\n",
-			PTR_ERR(info->tzd));
-		return PTR_ERR(info->tzd);
+	for (i = 0; i < info->data->sensor_count; i++) {
+		info->tzds[i].info = info;
+		info->tzds[i].sensor_id = i;
+
+		info->tzds[i].tzd = thermal_zone_of_sensor_register(
+				info->sensor_device,
+				i, &info->tzds[i], &sun4i_ts_tz_ops);
+		/*
+		 * Do not fail driver probing when failing to register in
+		 * thermal because no thermal DT node is found.
+		 */
+		if (IS_ERR(info->tzds[i].tzd) && \
+				PTR_ERR(info->tzds[i].tzd) != -ENODEV) {
+			dev_err(&pdev->dev,
+				"could not register thermal sensor: %ld\n",
+				PTR_ERR(info->tzds[i].tzd));
+			return PTR_ERR(info->tzds[i].tzd);
+		}
 	}
 
 	ret = devm_iio_device_register(&pdev->dev, indio_dev);
@@ -639,11 +659,14 @@ static int sun4i_gpadc_remove(struct platform_device *pdev)
 {
 	struct iio_dev *indio_dev = platform_get_drvdata(pdev);
 	struct sun4i_gpadc_iio *info = iio_priv(indio_dev);
+	int i;
 
 	pm_runtime_put(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 
-	thermal_zone_of_sensor_unregister(info->sensor_device, info->tzd);
+	for (i = 0; i < info->data->sensor_count; i++)
+		thermal_zone_of_sensor_unregister(info->sensor_device,
+						  info->tzds[i].tzd);
 
 	if (!info->data->support_irq)
 		iio_map_array_unregister(indio_dev);
