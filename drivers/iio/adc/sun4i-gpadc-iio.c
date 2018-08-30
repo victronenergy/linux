@@ -27,6 +27,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -70,6 +71,7 @@ struct gpadc_data {
 	bool		has_mod_clk;
 	u32		temp_data_base;
 	int		sensor_count;
+	bool		supports_nvmem;
 };
 
 static irqreturn_t sun4i_gpadc_data_irq_handler(int irq, void *dev_id);
@@ -146,6 +148,7 @@ struct sun4i_gpadc_iio {
 	struct clk			*bus_clk;
 	struct clk			*mod_clk;
 	struct reset_control		*reset;
+	u32				calibration_data[2];
 };
 
 static const struct iio_chan_spec sun4i_gpadc_channels[] = {
@@ -484,6 +487,9 @@ static int sun4i_gpadc_probe_dt(struct platform_device *pdev,
 	struct resource *mem;
 	void __iomem *base;
 	int ret;
+	struct nvmem_cell *cell;
+	ssize_t cell_size;
+	u32 *cell_data;
 
 	info->data = of_device_get_match_data(&pdev->dev);
 	if (!info->data)
@@ -493,6 +499,24 @@ static int sun4i_gpadc_probe_dt(struct platform_device *pdev,
 	base = devm_ioremap_resource(&pdev->dev, mem);
 	if (IS_ERR(base))
 		return PTR_ERR(base);
+
+	if (info->data->supports_nvmem) {
+
+		cell = nvmem_cell_get(&pdev->dev, "calibration");
+		if (IS_ERR(cell)) {
+			if (PTR_ERR(cell) == -EPROBE_DEFER)
+				return PTR_ERR(cell);
+		} else {
+			cell_data = (u32 *)nvmem_cell_read(cell, &cell_size);
+			if (cell_size != 8)
+				dev_err(&pdev->dev,
+					"Calibration data has wrong size\n");
+			else {
+				info->calibration_data[0] = cell_data[0];
+				info->calibration_data[1] = cell_data[1];
+			}
+		}
+	}
 
 	if (info->data->has_bus_clk)
 		info->regmap = devm_regmap_init_mmio_clk(&pdev->dev, "bus",
