@@ -722,14 +722,16 @@ config STX104
 	  array module parameter.
 
 config SUN4I_GPADC
-	tristate "Support for the Allwinner SoCs GPADC"
+	tristate "Allwinner sunxi platforms' GPADC/Thermal driver"
 	depends on IIO
-	depends on MFD_SUN4I_GPADC || MACH_SUN8I
-	depends on THERMAL || !THERMAL_OF
+	depends on ARCH_SUNXI || MACH_SUN8I
+	depends on THERMAL && THERMAL_OF
 	select REGMAP_IRQ
+	select REGMAP_MMIO
 	help
 	  Say yes here to build support for Allwinner (A10, A13 and A31) SoCs
-	  GPADC. This ADC provides 4 channels which can be used as an ADC or as
+	  GPADC or newer SOCs (A33, H3, A83T, ...) Thermal sensor driver.
+	  This ADC provides 4 channels which can be used as an ADC or as
 	  a touchscreen input and one channel for thermal sensor.
 
 	  The thermal sensor slows down ADC readings and can be disabled by
