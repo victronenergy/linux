@@ -115,8 +115,15 @@
 
 	soc {
 		sid: eeprom@1c14000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
 			compatible = "allwinner,sun8i-h3-sid";
 			reg = <0x01c14000 0x400>;
+
+			/* Data cells */
+			thermal_calibration: calib@234 {
+				reg = <0x234 0x8>;
+			};
 		};
 	};
 
@@ -258,4 +265,6 @@
 &ths {
 	compatible = "allwinner,sun8i-h3-ths";
 	#thermal-sensor-cells = <0>;
+	nvmem-cells = <&thermal_calibration>;
+	nvmem-cell-names = "calibration";
 };
