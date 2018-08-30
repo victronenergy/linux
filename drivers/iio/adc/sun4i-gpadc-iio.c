@@ -37,7 +37,7 @@
 #include <linux/iio/iio.h>
 #include <linux/iio/driver.h>
 #include <linux/iio/machine.h>
-#include <linux/mfd/sun4i-gpadc.h>
+#include <linux/iio/adc/sun4i-gpadc.h>
 
 static unsigned int sun4i_gpadc_chan_select(unsigned int chan)
 {
