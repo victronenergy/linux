@@ -99,11 +99,4 @@
 	.datasheet_name = _name,				\
 }
 
-struct sun4i_gpadc_dev {
-	struct device			*dev;
-	struct regmap			*regmap;
-	struct regmap_irq_chip_data	*regmap_irqc;
-	void __iomem			*base;
-};
-
 #endif
