@@ -99,4 +99,7 @@
 	.datasheet_name = _name,				\
 }
 
+/* SUNXI_THS COMMON REGISTERS + DEFINES */
+#define MAX_SENSOR_COUNT				4
+
 #endif
