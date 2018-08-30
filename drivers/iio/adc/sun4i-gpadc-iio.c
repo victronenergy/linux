@@ -76,6 +76,9 @@ struct gpadc_data {
 
 static irqreturn_t sun4i_gpadc_data_irq_handler(int irq, void *dev_id);
 
+static int sun4i_ths_resume(struct sun4i_gpadc_iio *info);
+static int sun4i_ths_suspend(struct sun4i_gpadc_iio *info);
+
 static const struct gpadc_data sun4i_gpadc_data = {
 	.temp_offset = -1932,
 	.temp_scale = 133,
@@ -87,6 +90,8 @@ static const struct gpadc_data sun4i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.ths_resume = sun4i_ths_resume,
+	.ths_suspend = sun4i_ths_suspend,
 	.sensor_count = 1,
 };
 
@@ -101,6 +106,8 @@ static const struct gpadc_data sun5i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.ths_resume = sun4i_ths_resume,
+	.ths_suspend = sun4i_ths_suspend,
 	.sensor_count = 1,
 };
 
@@ -115,6 +122,8 @@ static const struct gpadc_data sun6i_gpadc_data = {
 	.ths_irq_thread = sun4i_gpadc_data_irq_handler,
 	.support_irq = true,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.ths_resume = sun4i_ths_resume,
+	.ths_suspend = sun4i_ths_suspend,
 	.sensor_count = 1,
 };
 
@@ -123,6 +132,8 @@ static const struct gpadc_data sun8i_a33_gpadc_data = {
 	.temp_scale = 162,
 	.tp_mode_en = SUN8I_A33_GPADC_CTRL1_CHOP_TEMP_EN,
 	.temp_data_base = SUN4I_GPADC_TEMP_DATA,
+	.ths_resume = sun4i_ths_resume,
+	.ths_suspend = sun4i_ths_suspend,
 	.sensor_count = 1,
 };
 
@@ -401,6 +412,11 @@ static irqreturn_t sun4i_gpadc_data_irq_handler(int irq, void *dev_id)
 static int sun4i_gpadc_runtime_suspend(struct device *dev)
 {
 	struct sun4i_gpadc_iio *info = iio_priv(dev_get_drvdata(dev));
+	return info->data->ths_suspend(info);
+}
+
+static int sun4i_ths_suspend(struct sun4i_gpadc_iio *info)
+{
 
 	/* Disable the ADC on IP */
 	regmap_write(info->regmap, SUN4I_GPADC_CTRL1, 0);
@@ -415,7 +431,11 @@ static int sun4i_gpadc_runtime_suspend(struct device *dev)
 static int sun4i_gpadc_runtime_resume(struct device *dev)
 {
 	struct sun4i_gpadc_iio *info = iio_priv(dev_get_drvdata(dev));
+	return info->data->ths_resume(info);
+}
 
+static int sun4i_ths_resume(struct sun4i_gpadc_iio *info)
+{
 	/* clkin = 6MHz */
 	regmap_write(info->regmap, SUN4I_GPADC_CTRL0,
 		     SUN4I_GPADC_CTRL0_ADC_CLK_DIVIDER(2) |
