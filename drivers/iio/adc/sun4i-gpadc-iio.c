@@ -435,6 +435,18 @@ static const struct of_device_id sun4i_gpadc_of_id[] = {
 		.compatible = "allwinner,sun8i-a33-ths",
 		.data = &sun8i_a33_gpadc_data,
 	},
+	{
+		.compatible = "allwinner,sun4i-a10-gpadc",
+		.data = &sun4i_gpadc_data
+	},
+	{
+		.compatible = "allwinner,sun5i-a13-gpadc",
+		.data = &sun5i_gpadc_data
+	},
+	{
+		.compatible = "allwinner,sun6i-a31-gpadc",
+		.data = &sun6i_gpadc_data
+	},
 	{ /* sentinel */ }
 };
 
