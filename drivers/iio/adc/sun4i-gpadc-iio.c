@@ -123,23 +123,6 @@ static const struct iio_chan_spec sun4i_gpadc_channels[] = {
 	},
 };
 
-static const struct iio_chan_spec sun4i_gpadc_channels_no_temp[] = {
-	SUN4I_GPADC_ADC_CHANNEL(0, "adc_chan0"),
-	SUN4I_GPADC_ADC_CHANNEL(1, "adc_chan1"),
-	SUN4I_GPADC_ADC_CHANNEL(2, "adc_chan2"),
-	SUN4I_GPADC_ADC_CHANNEL(3, "adc_chan3"),
-};
-
-static const struct iio_chan_spec sun8i_a33_gpadc_channels[] = {
-	{
-		.type = IIO_TEMP,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-				      BIT(IIO_CHAN_INFO_SCALE) |
-				      BIT(IIO_CHAN_INFO_OFFSET),
-		.datasheet_name = "temp_adc",
-	},
-};
-
 static const struct regmap_config sun4i_gpadc_regmap_config = {
 	.reg_bits = 32,
 	.val_bits = 32,
@@ -444,8 +427,6 @@ static int sun4i_gpadc_probe_dt(struct platform_device *pdev,
 		return -ENODEV;
 
 	info->no_irq = true;
-	indio_dev->num_channels = ARRAY_SIZE(sun8i_a33_gpadc_channels);
-	indio_dev->channels = sun8i_a33_gpadc_channels;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(&pdev->dev, mem);
