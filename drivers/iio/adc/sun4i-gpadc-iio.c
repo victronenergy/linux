@@ -109,15 +109,6 @@ struct sun4i_gpadc_iio {
 	struct device			*sensor_device;
 };
 
-#define SUN4I_GPADC_ADC_CHANNEL(_channel, _name) {		\
-	.type = IIO_VOLTAGE,					\
-	.indexed = 1,						\
-	.channel = _channel,					\
-	.info_mask_separate = BIT(IIO_CHAN_INFO_RAW),		\
-	.info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE),	\
-	.datasheet_name = _name,				\
-}
-
 static struct iio_map sun4i_gpadc_hwmon_maps[] = {
 	{
 		.adc_channel_label = "temp_adc",
