@@ -698,21 +698,12 @@ static int sun4i_gpadc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct platform_device_id sun4i_gpadc_id[] = {
-	{ "sun4i-a10-gpadc-iio", (kernel_ulong_t)&sun4i_gpadc_data },
-	{ "sun5i-a13-gpadc-iio", (kernel_ulong_t)&sun5i_gpadc_data },
-	{ "sun6i-a31-gpadc-iio", (kernel_ulong_t)&sun6i_gpadc_data },
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(platform, sun4i_gpadc_id);
-
 static struct platform_driver sun4i_gpadc_driver = {
 	.driver = {
 		.name = "sun4i-gpadc-iio",
 		.of_match_table = sun4i_gpadc_of_id,
 		.pm = &sun4i_gpadc_pm_ops,
 	},
-	.id_table = sun4i_gpadc_id,
 	.probe = sun4i_gpadc_probe,
 	.remove = sun4i_gpadc_remove,
 };
