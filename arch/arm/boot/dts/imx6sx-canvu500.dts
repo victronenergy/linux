@@ -270,14 +270,6 @@
 &uart4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart4>;
-	fsl,uart-has-rtscts;
-	status = "okay";
-};
-
-&uart6 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart6>;
-	fsl,uart-has-rtscts;
 	status = "okay";
 };
 
@@ -457,17 +449,6 @@
 			fsl,pins = <
 				MX6SX_PAD_CSI_PIXCLK__UART4_TX		0x1b0b1
 				MX6SX_PAD_CSI_MCLK__UART4_RX		0x1b0b1
-				MX6SX_PAD_CSI_VSYNC__UART4_CTS_B	0x1b0b1
-				MX6SX_PAD_CSI_HSYNC__UART4_RTS_B	0x1b0b1
-			>;
-		};
-
-		pinctrl_uart6: uart6grp {
-			fsl,pins = <
-				MX6SX_PAD_CSI_DATA05__UART6_TX		0x1b0b1
-				MX6SX_PAD_CSI_DATA04__UART6_RX		0x1b0b1
-				MX6SX_PAD_CSI_DATA07__UART6_CTS_B	0x1b0b1
-				MX6SX_PAD_CSI_DATA06__UART6_RTS_B	0x1b0b1
 			>;
 		};
 
