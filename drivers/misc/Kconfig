@@ -538,6 +538,13 @@ config TMR_INJECT
 
 	  Say N here unless you know what you are doing.
 
+config CANVU_IO
+	tristate "CANvu digital/analog I/O controller"
+	depends on OF
+	select GPIOLIB
+	select IRQ_SIM
+	select SERIAL_DEV_BUS
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
