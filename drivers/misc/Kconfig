@@ -506,6 +506,17 @@ config PCI_ENDPOINT_TEST
            Enable this configuration option to enable the host side test driver
            for PCI Endpoint.
 
+config CANVU_IO
+	tristate "CANvu digital/analog I/O controller"
+	depends on OF
+	select GPIOLIB
+	select SERIAL_DEV_BUS
+
+config CANVU_IO_GPIO_BASE
+	int "GPIO number base"
+	default -1
+	depends on CANVU_IO
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
