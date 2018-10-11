@@ -47,6 +47,23 @@ struct device_node *usb_of_get_child_node(struct device_node *parent,
 }
 EXPORT_SYMBOL_GPL(usb_of_get_child_node);
 
+struct device_node *usb_of_get_interface_node(struct device_node *parent,
+					int ifnum, int config)
+{
+	struct device_node *node;
+	u32 reg[2];
+
+	for_each_child_of_node(parent, node) {
+		if (!of_property_read_u32_array(node, "reg", reg, 2)) {
+			if (reg[0] == ifnum && reg[1] == config)
+				return of_node_get(node);
+		}
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(usb_of_get_interface_node);
+
 int usb_of_get_removable(struct device_node *node)
 {
 	u32 removable;

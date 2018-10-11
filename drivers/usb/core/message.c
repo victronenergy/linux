@@ -15,6 +15,7 @@
 #include <linux/usb/cdc.h>
 #include <linux/usb/quirks.h>
 #include <linux/usb/hcd.h>	/* for usbcore internals */
+#include <linux/usb/of.h>
 #include <asm/byteorder.h>
 
 #include "usb.h"
@@ -1563,6 +1564,7 @@ static void usb_release_interface(struct device *dev)
 
 	kref_put(&intfc->ref, usb_release_interface_cache);
 	usb_put_dev(interface_to_usbdev(intf));
+	of_node_put(dev->of_node);
 	kfree(intf);
 }
 
@@ -1745,6 +1747,7 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
 	struct usb_host_config *cp = NULL;
 	struct usb_interface **new_interfaces = NULL;
 	struct usb_hcd *hcd = bus_to_hcd(dev->bus);
+	bool combined_node = false;
 	int n, nintf;
 
 	if (dev->authorized == 0 || configuration == -1)
@@ -1840,6 +1843,11 @@ free_interfaces:
 		goto free_interfaces;
 	}
 
+	if ((dev->descriptor.bDeviceClass == 0 ||
+	     dev->descriptor.bDeviceClass == 9) &&
+	    dev->descriptor.bNumConfigurations == 1 && nintf == 1)
+		combined_node = true;
+
 	/*
 	 * Initialize the new interface structures and the
 	 * hc/hcd/usbcore interface/endpoint state.
@@ -1875,6 +1883,15 @@ free_interfaces:
 		intf->dev.bus = &usb_bus_type;
 		intf->dev.type = &usb_if_device_type;
 		intf->dev.groups = usb_interface_groups;
+
+		if (combined_node)
+			intf->dev.of_node = of_node_get(dev->dev.of_node);
+		else
+			intf->dev.of_node =
+				usb_of_get_interface_node(dev->dev.of_node,
+						  alt->desc.bInterfaceNumber,
+						  configuration);
+
 		/*
 		 * Please refer to usb_alloc_dev() to see why we set
 		 * dma_mask and dma_pfn_offset.

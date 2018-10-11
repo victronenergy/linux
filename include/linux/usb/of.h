@@ -18,6 +18,8 @@ int of_usb_update_otg_caps(struct device_node *np,
 			struct usb_otg_caps *otg_caps);
 struct device_node *usb_of_get_child_node(struct device_node *parent,
 			int portnum);
+struct device_node *usb_of_get_interface_node(struct device_node *parent,
+					int ifnum, int config);
 int usb_of_get_removable(struct device_node *np);
 #else
 static inline enum usb_dr_mode
@@ -36,6 +38,11 @@ static inline int of_usb_update_otg_caps(struct device_node *np,
 }
 static inline struct device_node *usb_of_get_child_node
 		(struct device_node *parent, int portnum)
+{
+	return NULL;
+}
+struct device_node *usb_of_get_interface_node(struct device_node *parent,
+					int ifnum, int config)
 {
 	return NULL;
 }
