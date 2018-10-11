@@ -36,8 +36,10 @@
 #include <linux/serial.h>
 #include <linux/usb.h>
 #include <linux/usb/serial.h>
+#include <linux/usb/of.h>
 #include <linux/kfifo.h>
 #include <linux/idr.h>
+#include <linux/of.h>
 #include "pl2303.h"
 
 #define DRIVER_AUTHOR "Greg Kroah-Hartman <gregkh@linuxfoundation.org>"
@@ -56,6 +58,8 @@
 static DEFINE_IDR(serial_minors);
 static DEFINE_MUTEX(table_lock);
 static LIST_HEAD(usb_serial_driver_list);
+static int nr_fixed_ports;
+static struct usb_serial_port **fixed_ports;
 
 /*
  * Look up the serial port structure.  If it is found and it hasn't been
@@ -68,7 +72,11 @@ struct usb_serial_port *usb_serial_port_get_by_minor(unsigned minor)
 	struct usb_serial_port *port;
 
 	mutex_lock(&table_lock);
-	port = idr_find(&serial_minors, minor);
+	if (minor < nr_fixed_ports)
+		port = fixed_ports[minor];
+	else
+		port = idr_find(&serial_minors, minor);
+
 	if (!port)
 		goto exit;
 
@@ -85,6 +93,35 @@ exit:
 	return port;
 }
 
+static int allocate_minor(struct usb_serial_port *port)
+{
+	int minor;
+
+	minor = of_alias_get_id(port->dev.of_node, "usb-serial");
+
+	if (minor >= nr_fixed_ports) {
+		dev_warn(&port->dev, "port id too large (%d >= %d)\n",
+			 minor, nr_fixed_ports);
+		minor = -EINVAL;
+	}
+
+	if (minor >= 0)
+		fixed_ports[minor] = port;
+	else
+		minor = idr_alloc(&serial_minors, port, nr_fixed_ports,
+					USB_SERIAL_TTY_MINORS, GFP_KERNEL);
+
+	return minor;
+}
+
+static void release_minor(struct usb_serial_port *port)
+{
+	if (port->minor < nr_fixed_ports)
+		fixed_ports[port->minor] = NULL;
+	else
+		idr_remove(&serial_minors, port->minor);
+}
+
 static int allocate_minors(struct usb_serial *serial, int num_ports)
 {
 	struct usb_serial_port *port;
@@ -96,12 +133,11 @@ static int allocate_minors(struct usb_serial *serial, int num_ports)
 	mutex_lock(&table_lock);
 	for (i = 0; i < num_ports; ++i) {
 		port = serial->port[i];
-		minor = idr_alloc(&serial_minors, port, 0,
-					USB_SERIAL_TTY_MINORS, GFP_KERNEL);
+		port->port_number = i;
+		minor = allocate_minor(port);
 		if (minor < 0)
 			goto error;
 		port->minor = minor;
-		port->port_number = i;
 	}
 	serial->minors_reserved = 1;
 	mutex_unlock(&table_lock);
@@ -109,7 +145,7 @@ static int allocate_minors(struct usb_serial *serial, int num_ports)
 error:
 	/* unwind the already allocated minors */
 	for (j = 0; j < i; ++j)
-		idr_remove(&serial_minors, serial->port[j]->minor);
+		release_minor(serial->port[j]);
 	mutex_unlock(&table_lock);
 	return minor;
 }
@@ -120,7 +156,7 @@ static void release_minors(struct usb_serial *serial)
 
 	mutex_lock(&table_lock);
 	for (i = 0; i < serial->num_ports; ++i)
-		idr_remove(&serial_minors, serial->port[i]->minor);
+		release_minor(serial->port[i]);
 	mutex_unlock(&table_lock);
 	serial->minors_reserved = 0;
 }
@@ -145,6 +181,7 @@ static void destroy_serial(struct kref *kref)
 		port = serial->port[i];
 		if (port) {
 			port->serial = NULL;
+			of_node_put(port->dev.of_node);
 			put_device(&port->dev);
 		}
 	}
@@ -919,6 +956,15 @@ static int usb_serial_probe(struct usb_interface *interface,
 		port->dev.bus = &usb_serial_bus_type;
 		port->dev.release = &usb_serial_port_release;
 		port->dev.groups = usb_serial_port_groups;
+		if (num_ports > 1) {
+			port->dev.of_node =
+				usb_of_get_child_node(interface->dev.of_node,
+							i);
+			of_node_get(port->dev.of_node);
+		} else {
+			port->dev.of_node =
+				of_node_get(interface->dev.of_node);
+		}
 		device_initialize(&port->dev);
 	}
 
@@ -1234,10 +1280,20 @@ static struct usb_driver usb_serial_driver = {
 static int __init usb_serial_init(void)
 {
 	int result;
+	int max_alias;
 
 	usb_serial_tty_driver = alloc_tty_driver(USB_SERIAL_TTY_MINORS);
 	if (!usb_serial_tty_driver)
 		return -ENOMEM;
+
+	max_alias = of_alias_get_highest_id("usb-serial");
+	if (max_alias >= 0) {
+		nr_fixed_ports = max_alias + 1;
+		fixed_ports = kzalloc(nr_fixed_ports * sizeof(*fixed_ports),
+				      GFP_KERNEL);
+		if (!fixed_ports)
+			return -ENOMEM;
+	}
 
 	/* Initialize our global data */
 	result = bus_register(&usb_serial_bus_type);
@@ -1309,6 +1365,7 @@ static void __exit usb_serial_exit(void)
 	put_tty_driver(usb_serial_tty_driver);
 	bus_unregister(&usb_serial_bus_type);
 	idr_destroy(&serial_minors);
+	kfree(fixed_ports);
 }
 
 
