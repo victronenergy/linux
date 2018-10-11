@@ -35,6 +35,7 @@
 #include <linux/usb/serial.h>
 #include <linux/kfifo.h>
 #include <linux/idr.h>
+#include <linux/of.h>
 
 #define DRIVER_AUTHOR "Greg Kroah-Hartman <gregkh@linuxfoundation.org>"
 #define DRIVER_DESC "USB Serial Driver core"
@@ -52,6 +53,7 @@
 static DEFINE_IDR(serial_minors);
 static DEFINE_MUTEX(table_lock);
 static LIST_HEAD(usb_serial_driver_list);
+static int nr_fixed_ports;
 
 /*
  * Look up the serial port structure.  If it is found and it hasn't been
@@ -81,6 +83,17 @@ exit:
 	return port;
 }
 
+static int allocate_minor(struct usb_serial_port *port)
+{
+	int id = of_alias_get_id(port->dev.of_node, "usb-serial");
+
+	if (id < 0)
+		id = nr_fixed_ports;
+
+	return idr_alloc(&serial_minors, port, id, USB_SERIAL_TTY_MINORS,
+			 GFP_KERNEL);
+}
+
 static int allocate_minors(struct usb_serial *serial, int num_ports)
 {
 	struct usb_serial_port *port;
@@ -92,8 +105,7 @@ static int allocate_minors(struct usb_serial *serial, int num_ports)
 	mutex_lock(&table_lock);
 	for (i = 0; i < num_ports; ++i) {
 		port = serial->port[i];
-		minor = idr_alloc(&serial_minors, port, 0,
-					USB_SERIAL_TTY_MINORS, GFP_KERNEL);
+		minor = allocate_minor(port);
 		if (minor < 0)
 			goto error;
 		port->minor = minor;
@@ -141,6 +153,7 @@ static void destroy_serial(struct kref *kref)
 		port = serial->port[i];
 		if (port) {
 			port->serial = NULL;
+			of_node_put(port->dev.of_node);
 			put_device(&port->dev);
 		}
 	}
@@ -862,6 +875,22 @@ static int setup_port_interrupt_out(struct usb_serial_port *port,
 	return 0;
 }
 
+static struct device_node *get_child_node(struct usb_interface *intf, int port)
+{
+	struct device_node *node;
+	u32 reg;
+
+	for_each_child_of_node(intf->dev.of_node, node) {
+		if (of_property_read_u32(node, "reg", &reg))
+			continue;
+
+		if (reg == port)
+			return node;
+	}
+
+	return NULL;
+}
+
 static int usb_serial_probe(struct usb_interface *interface,
 			       const struct usb_device_id *id)
 {
@@ -981,6 +1010,12 @@ static int usb_serial_probe(struct usb_interface *interface,
 		port->dev.bus = &usb_serial_bus_type;
 		port->dev.release = &usb_serial_port_release;
 		port->dev.groups = usb_serial_port_groups;
+		if (num_ports > 1) {
+			port->dev.of_node = get_child_node(interface, i);
+		} else {
+			device_set_of_node_from_dev(&port->dev,
+						    &interface->dev);
+		}
 		device_initialize(&port->dev);
 	}
 
@@ -1208,10 +1243,15 @@ struct tty_driver *usb_serial_tty_driver;
 static int __init usb_serial_init(void)
 {
 	int result;
+	int max_alias;
 
 	usb_serial_tty_driver = alloc_tty_driver(USB_SERIAL_TTY_MINORS);
 	if (!usb_serial_tty_driver)
 		return -ENOMEM;
+
+	max_alias = of_alias_get_highest_id("usb-serial");
+	if (max_alias >= 0)
+		nr_fixed_ports = max_alias + 1;
 
 	/* Initialize our global data */
 	result = bus_register(&usb_serial_bus_type);
