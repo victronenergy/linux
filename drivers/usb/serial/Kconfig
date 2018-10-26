@@ -19,10 +19,6 @@ menuconfig USB_SERIAL
 
 if USB_SERIAL
 
-config USB_SERIAL_FIXED_IDS
-	int "Number of device IDs reserved for fixed devices"
-	default 0
-
 config USB_SERIAL_CONSOLE
 	bool "USB Serial Console device support"
 	depends on USB_SERIAL=y
