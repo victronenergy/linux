@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/gpio/consumer.h>
 #include <linux/delay.h>
+#include <linux/reboot.h>
 
 #include "phy-generic.h"
 
@@ -198,6 +199,18 @@ static int nop_set_host(struct usb_otg *otg, struct usb_bus *host)
 	return 0;
 }
 
+static int nop_reboot(struct notifier_block *nb, unsigned long action,
+		      void *data)
+{
+	struct usb_phy_generic *nop =
+		container_of(nb, struct usb_phy_generic, reboot);
+
+	if (nop->gpiod_reset)
+		gpiod_set_value_cansleep(nop->gpiod_reset, 1);
+
+	return NOTIFY_DONE;
+}
+
 int usb_phy_gen_create_phy(struct device *dev, struct usb_phy_generic *nop)
 {
 	enum usb_phy_type type = USB_PHY_TYPE_USB2;
@@ -323,6 +336,9 @@ static int usb_phy_generic_probe(struct platform_device *pdev)
 	device_set_wakeup_capable(&pdev->dev,
 				  of_property_read_bool(dn, "wakeup-source"));
 
+	nop->reboot.notifier_call = nop_reboot;
+	register_reboot_notifier(&nop->reboot);
+
 	return 0;
 }
 
@@ -330,6 +346,7 @@ static void usb_phy_generic_remove(struct platform_device *pdev)
 {
 	struct usb_phy_generic *nop = platform_get_drvdata(pdev);
 
+	unregister_reboot_notifier(&nop->reboot);
 	usb_remove_phy(&nop->phy);
 
 	if (nop->vbus_draw && nop->vbus_draw_enabled)

@@ -5,6 +5,7 @@
 #include <linux/usb/usb_phy_generic.h>
 #include <linux/gpio/consumer.h>
 #include <linux/regulator/consumer.h>
+#include <linux/notifier.h>
 
 struct usb_phy_generic {
 	struct usb_phy phy;
@@ -17,6 +18,7 @@ struct usb_phy_generic {
 	bool vbus_draw_enabled;
 	unsigned long mA;
 	unsigned int vbus;
+	struct notifier_block reboot;
 };
 
 int usb_gen_phy_init(struct usb_phy *phy);
