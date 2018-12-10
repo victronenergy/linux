@@ -13,6 +13,8 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/fb.h>
+#include <linux/io.h>
+#include <linux/of_address.h>
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
 #include <linux/device.h>
@@ -1302,7 +1304,7 @@ static void omapfb_free_fbmem(struct fb_info *fbi)
 
 	rg = ofbi->region;
 
-	if (rg->token == NULL)
+	if (rg->vaddr == NULL)
 		return;
 
 	WARN_ON(atomic_read(&rg->map_count));
@@ -1317,8 +1319,11 @@ static void omapfb_free_fbmem(struct fb_info *fbi)
 		omap_vrfb_release_ctx(&rg->vrfb);
 	}
 
-	dma_free_attrs(fbdev->dev, rg->size, rg->token, rg->dma_handle,
-			rg->attrs);
+	if (rg->token)
+		dma_free_attrs(fbdev->dev, rg->size, rg->token, rg->dma_handle,
+			       rg->attrs);
+	else
+		memunmap(rg->vaddr);
 
 	rg->token = NULL;
 	rg->vaddr = NULL;
@@ -1355,9 +1360,13 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 	struct omapfb_info *ofbi = FB2OFB(fbi);
 	struct omapfb2_device *fbdev = ofbi->fbdev;
 	struct omapfb2_mem_region *rg;
-	void *token;
+	struct omap_dss_device *dssdev;
+	struct device_node *memreg;
+	struct resource res;
+	void *token = NULL;
 	unsigned long attrs;
-	dma_addr_t dma_handle;
+	dma_addr_t dma_handle = 0;
+	void __iomem *vaddr;
 	int r;
 
 	rg = ofbi->region;
@@ -1377,24 +1386,51 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 	if (ofbi->rotation_type == OMAP_DSS_ROT_VRFB)
 		attrs |= DMA_ATTR_NO_KERNEL_MAPPING;
 
-	DBG("allocating %lu bytes for fb %d\n", size, ofbi->id);
+	dssdev = fb2display(fbi);
+	memreg = of_parse_phandle(dssdev->src->dev->of_node,
+				  "memory-region", ofbi->id);
 
-	token = dma_alloc_attrs(fbdev->dev, size, &dma_handle,
-			GFP_KERNEL, attrs);
+	if (memreg) {
+		r = of_address_to_resource(memreg, 0, &res);
+		of_node_put(memreg);
 
-	if (token == NULL) {
-		dev_err(fbdev->dev, "failed to allocate framebuffer\n");
-		return -ENOMEM;
+		if (r)
+			return r;
+
+		if (resource_size(&res) < size) {
+			dev_err(fbdev->dev, "reserved memory too small\n");
+			return -EINVAL;
+		}
+
+		paddr = res.start;
+		vaddr = memremap(paddr, size, MEMREMAP_WC);
+		if (!vaddr)
+			return -EINVAL;
+	} else {
+		DBG("allocating %lu bytes for fb %d\n", size, ofbi->id);
+
+		token = dma_alloc_attrs(fbdev->dev, size, &dma_handle,
+					GFP_KERNEL, attrs);
+
+		if (token == NULL) {
+			dev_err(fbdev->dev, "failed to allocate framebuffer\n");
+			return -ENOMEM;
+		}
+
+		paddr = (unsigned long)dma_handle;
+		vaddr = (void __iomem *)token;
 	}
 
-	DBG("allocated VRAM paddr %lx, vaddr %p\n",
-			(unsigned long)dma_handle, token);
+	DBG("allocated VRAM paddr %lx, vaddr %p\n", paddr, vaddr);
 
 	if (ofbi->rotation_type == OMAP_DSS_ROT_VRFB) {
 		r = omap_vrfb_request_ctx(&rg->vrfb);
 		if (r) {
-			dma_free_attrs(fbdev->dev, size, token, dma_handle,
-					attrs);
+			if (token)
+				dma_free_attrs(fbdev->dev, size, token,
+					       dma_handle, attrs);
+			else
+				memunmap(vaddr);
 			dev_err(fbdev->dev, "vrfb create ctx failed\n");
 			return r;
 		}
@@ -1404,8 +1440,9 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 	rg->token = token;
 	rg->dma_handle = dma_handle;
 
-	rg->paddr = (unsigned long)dma_handle;
-	rg->vaddr = (void __iomem *)token;
+	rg->paddr = paddr;
+	rg->vaddr = vaddr;
+
 	rg->size = size;
 	rg->alloc = 1;
 
