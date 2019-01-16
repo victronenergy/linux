@@ -5,6 +5,7 @@
  * Copyright (c) 2013, Carlo Caione <carlo.caione@gmail.com>
  */
 
+#include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/fs.h>
@@ -19,8 +20,10 @@
 #include <linux/types.h>
 
 #define SUNXI_LOSC_CTRL				0x0000
+#define SUNXI_LOSC_CTRL_KEY			(0x16aa << 16)
 #define SUNXI_LOSC_CTRL_RTC_HMS_ACC		BIT(8)
 #define SUNXI_LOSC_CTRL_RTC_YMD_ACC		BIT(7)
+#define SUNXI_LOSC_CTRL_OSC32K_SRC_SEL		BIT(0)
 
 #define SUNXI_RTC_YMD				0x0004
 
@@ -420,6 +423,7 @@ MODULE_DEVICE_TABLE(of, sunxi_rtc_dt_ids);
 static int sunxi_rtc_probe(struct platform_device *pdev)
 {
 	struct sunxi_rtc_dev *chip;
+	struct clk *extclk;
 	int ret;
 
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
@@ -451,6 +455,20 @@ static int sunxi_rtc_probe(struct platform_device *pdev)
 	if (!chip->data_year) {
 		dev_err(&pdev->dev, "Unable to setup RTC data\n");
 		return -ENODEV;
+	}
+
+	/* use external oscillator if present */
+	extclk = devm_clk_get_optional_enabled(&pdev->dev, NULL);
+	if (IS_ERR(extclk))
+		return PTR_ERR(extclk);
+
+	if (extclk) {
+		u32 val = readl(chip->base + SUNXI_LOSC_CTRL);
+
+		val |= SUNXI_LOSC_CTRL_KEY;
+		val |= SUNXI_LOSC_CTRL_OSC32K_SRC_SEL;
+
+		writel(val, chip->base + SUNXI_LOSC_CTRL);
 	}
 
 	/* clear the alarm count value */
