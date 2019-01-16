@@ -23,6 +23,10 @@
 #define SUNXI_LOSC_CTRL				0x0000
 #define SUNXI_LOSC_CTRL_RTC_HMS_ACC		BIT(8)
 #define SUNXI_LOSC_CTRL_RTC_YMD_ACC		BIT(7)
+#define SUNXI_LOSC_CTRL_GSM_M			3
+#define SUNXI_LOSC_CTRL_GSM_S			2
+#define SUNXI_LOSC_CTRL_OSC32K_SRC_SEL		BIT(0)
+#define SUNXI_LOSC_CTRL_MAGIC			0x16aa0000
 
 #define SUNXI_RTC_YMD				0x0004
 
@@ -454,6 +458,12 @@ static int sunxi_rtc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Unable to setup RTC data\n");
 		return -ENODEV;
 	}
+
+	/* use external oscillator */
+	writel(SUNXI_LOSC_CTRL_MAGIC |
+	       SUNXI_LOSC_CTRL_OSC32K_SRC_SEL |
+	       SUNXI_SET(3, SUNXI_LOSC_CTRL_GSM_M, SUNXI_LOSC_CTRL_GSM_S),
+	       chip->base + SUNXI_LOSC_CTRL);
 
 	/* clear the alarm count value */
 	writel(0, chip->base + SUNXI_ALRM_DHMS);
