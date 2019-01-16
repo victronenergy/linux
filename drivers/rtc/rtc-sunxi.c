@@ -455,6 +455,9 @@ static int sunxi_rtc_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	/* use external oscillator */
+	writel(0x16aa0001, chip->base + SUNXI_LOSC_CTRL);
+
 	/* clear the alarm count value */
 	writel(0, chip->base + SUNXI_ALRM_DHMS);
 
