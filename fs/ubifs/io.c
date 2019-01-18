@@ -59,6 +59,7 @@
  */
 
 #include <linux/crc32.h>
+#include <linux/mount.h>
 #include <linux/slab.h>
 #include "ubifs.h"
 
@@ -75,6 +76,7 @@ void ubifs_ro_mode(struct ubifs_info *c, int err)
 		c->vfs_sb->s_flags |= SB_RDONLY;
 		ubifs_warn(c, "switched to read-only mode, error %d", err);
 		dump_stack();
+		mnt_options_changed();
 	}
 }
 
