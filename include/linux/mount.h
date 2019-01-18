@@ -123,4 +123,6 @@ extern void kern_unmount_array(struct vfsmount *mnt[], unsigned int num);
 
 extern int cifs_root_data(char **dev, char **opts);
 
+extern void mnt_options_changed(void);
+
 #endif /* _LINUX_MOUNT_H */
