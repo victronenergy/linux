@@ -106,4 +106,6 @@ extern unsigned int sysctl_mount_max;
 
 extern bool path_is_mountpoint(const struct path *path);
 
+extern void mnt_options_changed(void);
+
 #endif /* _LINUX_MOUNT_H */
