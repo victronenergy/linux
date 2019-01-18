@@ -804,6 +804,19 @@ static void touch_mnt_namespace(struct mnt_namespace *ns)
 }
 
 /*
+ * When ubi becomes read-only there is no poll event for /proc/mounts
+ * generated. This allows to add that.
+ *
+ * @note It doesn't respect namespaces, but we don't use that!
+ */
+void mnt_options_changed(void)
+{
+	lock_mount_hash();
+	touch_mnt_namespace(current->nsproxy->mnt_ns);
+	unlock_mount_hash();
+}
+
+/*
  * vfsmount lock must be held for write
  */
 static void __touch_mnt_namespace(struct mnt_namespace *ns)
