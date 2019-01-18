@@ -114,4 +114,6 @@ extern bool path_is_mountpoint(const struct path *path);
 
 extern void kern_unmount_array(struct vfsmount *mnt[], unsigned int num);
 
+extern void mnt_options_changed(void);
+
 #endif /* _LINUX_MOUNT_H */
