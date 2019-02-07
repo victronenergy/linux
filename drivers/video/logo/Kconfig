@@ -82,4 +82,7 @@ config LOGO_M32R_CLUT224
 	depends on M32R
 	default y
 
+config LOGO_VICTRON_800_480
+	bool "Victron Energy logo 800x480 pixels"
+
 endif # LOGO
