@@ -68,4 +68,7 @@ config LOGO_SUPERH_CLUT224
 	depends on SUPERH
 	default y
 
+config LOGO_VICTRON_800_480
+	bool "Victron Energy logo 800x480 pixels"
+
 endif # LOGO
