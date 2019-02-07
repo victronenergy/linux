@@ -100,6 +100,9 @@ const struct linux_logo * __ref fb_find_logo(int depth)
 		/* SuperH Linux logo */
 		logo = &logo_superh_clut224;
 #endif
+#ifdef CONFIG_LOGO_VICTRON_800_480
+		logo = &logo_victron_800_480_clut224;
+#endif
 	}
 	return logo;
 }
