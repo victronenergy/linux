@@ -13,6 +13,8 @@
 #include <linux/serdev.h>
 #include <linux/wait.h>
 
+#define MAX_GPIO_RETRY 10
+
 struct canvu_io {
 	size_t bufsize;
 	u8 *outbuf;
@@ -27,7 +29,7 @@ struct canvu_io {
 	int nr_out;
 	int nr_in;
 	u8 *pins;
-	bool gpio_need_update;
+	int gpio_update;
 	wait_queue_head_t gpio_wait;
 };
 
@@ -109,17 +111,24 @@ static int canvu_io_handle_output(struct canvu_io *cio)
 	const u8 *end = cio->inbuf + cio->inpos;
 	bool need_update = false;
 	bool wake = false;
+	int err = 0;
 	int pin;
 	int val;
 	int pv;
 
+	mutex_lock(&cio->lock);
+
 	for (pin = -1; p < end - 2 && *p != '*' && pin < cio->nr_out; pin++) {
-		if (*p++ != ',')
-			return -EINVAL;
+		if (*p++ != ',') {
+			err = -EINVAL;
+			goto out;
+		}
 
 		val = hex2u8(p);
-		if (val < 0)
-			return -EINVAL;
+		if (val < 0) {
+			err = -EINVAL;
+			goto out;
+		}
 
 		p += 2;
 
@@ -137,12 +146,16 @@ static int canvu_io_handle_output(struct canvu_io *cio)
 		}
 	}
 
-	cio->gpio_need_update = need_update;
+	if (!need_update)
+		cio->gpio_update = 0;
 
 	if (wake)
 		wake_up_all(&cio->gpio_wait);
 
-	return 0;
+out:
+	mutex_unlock(&cio->lock);
+
+	return err;
 }
 
 static int canvu_io_handle_version(struct canvu_io *cio)
@@ -270,8 +283,6 @@ static int canvu_io_set_outputs(struct canvu_io *cio)
 	u8 *end = cio->outbuf + cio->bufsize;
 	int i;
 
-	mutex_lock(&cio->lock);
-
 	p += snprintf(p, end - p, "#o,00");
 
 	for (i = 0; i < cio->nr_out; i++)
@@ -281,9 +292,8 @@ static int canvu_io_set_outputs(struct canvu_io *cio)
 
 	canvu_io_send(cio, p - cio->outbuf);
 
-	mutex_unlock(&cio->lock);
-
-	schedule_delayed_work(&cio->dwork, msecs_to_jiffies(40));
+	if (--cio->gpio_update)
+		schedule_delayed_work(&cio->dwork, msecs_to_jiffies(40));
 
 	return 0;
 }
@@ -292,10 +302,13 @@ static int canvu_io_set_output(struct canvu_io *cio, unsigned pin, int val)
 {
 	int tmo = msecs_to_jiffies(100);
 
-	cio->pins[pin] = val | 2;
-	cio->gpio_need_update = true;
+	mutex_lock(&cio->lock);
 
+	cio->pins[pin] = val | 2;
+	cio->gpio_update = MAX_GPIO_RETRY;
 	canvu_io_set_outputs(cio);
+
+	mutex_unlock(&cio->lock);
 
 	tmo = wait_event_timeout(cio->gpio_wait, !(cio->pins[pin] & 2), tmo);
 
@@ -405,8 +418,12 @@ static void canvu_io_work(struct work_struct *w)
 {
 	struct canvu_io *cio = work_to_canvu_io(w);
 
-	if (cio->gpio_need_update)
+	mutex_lock(&cio->lock);
+
+	if (cio->gpio_update)
 		canvu_io_set_outputs(cio);
+
+	mutex_unlock(&cio->lock);
 }
 
 static int canvu_io_probe(struct serdev_device *sdev)
@@ -464,7 +481,7 @@ static int canvu_io_probe(struct serdev_device *sdev)
 	strcpy(cio->outbuf, "#v*");
 	canvu_io_send(cio, 3);
 
-	cio->gpio_need_update = true;
+	cio->gpio_update = MAX_GPIO_RETRY;
 	schedule_delayed_work(&cio->dwork, 0);
 
 	return 0;
