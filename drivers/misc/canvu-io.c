@@ -205,6 +205,7 @@ static size_t canvu_io_add_data(struct canvu_io *cio, const u8 *buf,
 	const u8 *bufend = buf + len;
 	const u8 *start = buf;
 	const u8 *end;
+	bool nl;
 
 	if (cio->inpos == 0) {
 		start = memchr(buf, '#', len);
@@ -214,14 +215,15 @@ static size_t canvu_io_add_data(struct canvu_io *cio, const u8 *buf,
 		len = bufend - start;
 	}
 
-	end = memchr(start, '*', len);
+	end = memchr(start, '\n', len);
 
-	if (end)
-		end += min_t(ptrdiff_t, bufend - end, 3);
-	else
+	if (end) {
+		len = end++ - start;
+		nl = true;
+	} else {
 		end = start + len;
-
-	len = end - start;
+		nl = false;
+	}
 
 	if (cio->inpos + len > cio->bufsize) {
 		cio->inpos = 0;
@@ -231,7 +233,7 @@ static size_t canvu_io_add_data(struct canvu_io *cio, const u8 *buf,
 	memcpy(cio->inbuf + cio->inpos, start, len);
 	cio->inpos += len;
 
-	if (cio->inpos > 5 && cio->inbuf[cio->inpos - 3] == '*') {
+	if (nl) {
 		canvu_io_handle_message(cio);
 		cio->inpos = 0;
 	}
