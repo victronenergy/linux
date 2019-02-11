@@ -145,6 +145,18 @@ static int canvu_io_handle_output(struct canvu_io *cio)
 	return 0;
 }
 
+static int canvu_io_handle_version(struct canvu_io *cio)
+{
+	if (cio->inpos < 9)
+		return -EINVAL;
+
+	cio->inbuf[cio->inpos - 3] = 0;
+
+	dev_info(&cio->sdev->dev, "version: %s\n", cio->inbuf + 3);
+
+	return 0;
+}
+
 static int canvu_io_handle_message(struct canvu_io *cio)
 {
 	u8 *end;
@@ -166,6 +178,9 @@ static int canvu_io_handle_message(struct canvu_io *cio)
 
 	case 'S':
 		return canvu_io_handle_input(cio);
+
+	case 'V':
+		return canvu_io_handle_version(cio);
 	}
 
 	return 0;
@@ -445,6 +460,9 @@ static int canvu_io_probe(struct serdev_device *sdev)
 
 	serdev_device_set_baudrate(sdev, rate);
 	serdev_device_set_flow_control(sdev, false);
+
+	strcpy(cio->outbuf, "#v*");
+	canvu_io_send(cio, 3);
 
 	cio->gpio_need_update = true;
 	schedule_delayed_work(&cio->dwork, 0);
