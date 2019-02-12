@@ -974,10 +974,17 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
 
 	/* read/write data */
 	for (i = 0; i < num; i++) {
-		if (i == num - 1)
-			is_lastmsg = true;
+		if (is_lastmsg) {
+			/* previous message had I2C_M_STOP flag set */
+			temp = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
+			temp |= I2CR_MSTA;
+			imx_i2c_write_reg(temp, i2c_imx, IMX_I2C_I2CR);
+			result = i2c_imx_bus_busy(i2c_imx, 1, atomic);
+			if (result)
+				goto fail0;
+		}
 
-		if (i) {
+		if (i && !is_lastmsg) {
 			dev_dbg(&i2c_imx->adapter.dev,
 				"<%s> repeated start\n", __func__);
 			temp = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
@@ -987,6 +994,10 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
 			if (result)
 				goto fail0;
 		}
+
+		if (i == num - 1 || (msgs[i].flags & I2C_M_STOP))
+			is_lastmsg = true;
+
 		dev_dbg(&i2c_imx->adapter.dev,
 			"<%s> transfer message: %d\n", __func__, i);
 		/* write/read data */
@@ -1015,6 +1026,13 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
 				result = i2c_imx_dma_write(i2c_imx, &msgs[i]);
 			else
 				result = i2c_imx_write(i2c_imx, &msgs[i], atomic);
+
+			if (msgs[i].flags & I2C_M_STOP) {
+				temp = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
+				temp &= ~I2CR_MSTA;
+				imx_i2c_write_reg(temp, i2c_imx, IMX_I2C_I2CR);
+				i2c_imx_bus_busy(i2c_imx, 0, atomic);
+			}
 		}
 		if (result)
 			goto fail0;
@@ -1132,7 +1150,7 @@ static int i2c_imx_init_recovery_info(struct imx_i2c_struct *i2c_imx,
 
 static u32 i2c_imx_func(struct i2c_adapter *adapter)
 {
-	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL
+	return I2C_FUNC_I2C | I2C_FUNC_PROTOCOL_MANGLING | I2C_FUNC_SMBUS_EMUL
 		| I2C_FUNC_SMBUS_READ_BLOCK_DATA;
 }
 
