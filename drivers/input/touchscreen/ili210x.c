@@ -55,7 +55,7 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	struct i2c_msg msg[2] = {
 		{
 			.addr	= client->addr,
-			.flags	= 0,
+			.flags	= I2C_M_STOP,
 			.len	= 1,
 			.buf	= &reg,
 		},
