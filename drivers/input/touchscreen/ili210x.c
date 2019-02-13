@@ -9,7 +9,7 @@
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 
-#define MAX_TOUCHES		2
+#define MAX_POINTS		2
 #define POLL_PERIOD		20
 
 /* Touchscreen commands */
@@ -18,14 +18,14 @@
 #define REG_FIRMWARE_VERSION	0x40
 #define REG_CALIBRATE		0xcc
 
-struct finger {
+struct point {
 	__le16 x;
 	__le16 y;
 } __packed;
 
 struct touchdata {
 	u8 status;
-	struct finger finger[MAX_TOUCHES];
+	struct point points[MAX_POINTS];
 } __packed;
 
 struct panel_info {
@@ -46,8 +46,8 @@ struct ili210x {
 	struct input_dev *input;
 	struct delayed_work dwork;
 	struct touchscreen_properties prop;
-	int slots[MAX_TOUCHES];
-	struct input_mt_pos pos[MAX_TOUCHES];
+	int slots[MAX_POINTS];
+	struct input_mt_pos pos[MAX_POINTS];
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -81,17 +81,16 @@ static int ili210x_report_events(struct ili210x *priv,
 {
 	int i;
 	unsigned int x, y;
-	const struct finger *finger;
 	int np = 0;
 
-	for (i = 0; i < MAX_TOUCHES; i++) {
-		finger = &touchdata->finger[i];
+	for (i = 0; i < MAX_POINTS; i++) {
+		struct point *p = &touchdata->points[i];
 
 		if (!(touchdata->status & (1 << i)))
 			continue;
 
-		x = le16_to_cpu(finger->x);
-		y = le16_to_cpu(finger->y);
+		x = le16_to_cpu(p->x);
+		y = le16_to_cpu(p->y);
 
 		touchscreen_set_mt_pos(&priv->pos[np++], &priv->prop, x, y);
 	}
@@ -255,7 +254,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 
 	/* Multi touch */
-	input_mt_init_slots(input, MAX_TOUCHES,
+	input_mt_init_slots(input, MAX_POINTS,
 		INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED | INPUT_MT_TRACK);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
