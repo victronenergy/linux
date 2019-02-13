@@ -48,6 +48,7 @@ struct ili210x {
 	struct touchscreen_properties prop;
 	int slots[MAX_POINTS];
 	struct input_mt_pos pos[MAX_POINTS];
+	struct touchdata touchdata;
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -76,12 +77,19 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static int ili210x_report_events(struct ili210x *priv,
-				 struct touchdata *touchdata)
+static int ili210x_read_state(struct ili210x *priv)
 {
+	struct i2c_client *client = priv->client;
+	struct touchdata *touchdata = &priv->touchdata;
 	int i;
 	unsigned int x, y;
 	int np = 0;
+	int error;
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA, touchdata,
+				 sizeof(*touchdata));
+	if (error)
+		return error;
 
 	for (i = 0; i < MAX_POINTS; i++) {
 		struct point *p = &touchdata->points[i];
@@ -102,21 +110,15 @@ static void ili210x_work(struct work_struct *work)
 {
 	struct ili210x *priv = container_of(work, struct ili210x,
 					    dwork.work);
-	struct i2c_client *client = priv->client;
-	struct touchdata touchdata;
-	int error;
 	int np;
 	int i;
 
-	error = ili210x_read_reg(client, REG_TOUCHDATA,
-				 &touchdata, sizeof(touchdata));
-	if (error) {
-		dev_err(&client->dev,
-			"Unable to get touchdata, err = %d\n", error);
+	np = ili210x_read_state(priv);
+	if (np < 0) {
+		dev_err(&priv->client->dev, "Error reading touch data: %d\n",
+			np);
 		return;
 	}
-
-	np = ili210x_report_events(priv, &touchdata);
 
 	input_mt_assign_slots(priv->input, priv->slots, priv->pos, np, 0);
 
