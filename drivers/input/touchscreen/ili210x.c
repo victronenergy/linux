@@ -9,23 +9,46 @@
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 
-#define MAX_POINTS		2
+#define MAX_POINTS		10
 #define POLL_PERIOD		20
 
 /* Touchscreen commands */
 #define REG_TOUCHDATA		0x10
 #define REG_PANEL_INFO		0x20
 #define REG_FIRMWARE_VERSION	0x40
+#define REG_PROTOCOL_VERSION	0x42
 #define REG_CALIBRATE		0xcc
 
-struct point {
+struct point_v1 {
 	__le16 x;
 	__le16 y;
 } __packed;
 
-struct touchdata {
+struct touchdata_v1 {
 	u8 status;
-	struct point points[MAX_POINTS];
+	struct point_v1 points[];
+} __packed;
+
+struct point_v2 {
+	u8 status;
+	__be16 x;
+	__be16 y;
+} __packed;
+
+struct touchdata_v2 {
+	u8 npoints;
+	struct point_v2 points[];
+} __packed;
+
+struct point_v3 {
+	__be16 x;
+	__be16 y;
+	u8 pressure;
+} __packed;
+
+struct touchdata_v3 {
+	u8 status;
+	struct point_v3 points[];
 } __packed;
 
 struct panel_info {
@@ -33,13 +56,34 @@ struct panel_info {
 	__le16 ymax;
 	u8 xchannel_num;
 	u8 ychannel_num;
+
+	/* protocol version 2/3 only */
+	u8 max_points;
+	u8 touchkey_channel_num;
+	u8 touchkey_low;
+	u8 touchkey_high;	/* always 0xff */
 } __packed;
 
 struct firmware_version {
-	u8 id;
+	u8 fver[4];		/* internal firmware version */
+	u8 cver[4];		/* customer firmware version */
+} __packed;
+
+struct protocol_version {
 	u8 major;
 	u8 minor;
+	u8 release;
 } __packed;
+
+struct ili210x;
+
+struct protocol_info {
+	unsigned int version_size;
+	unsigned int info_size;
+	size_t data_size;
+	size_t point_size;
+	int (*read_state)(struct ili210x *);
+};
 
 struct ili210x {
 	struct i2c_client *client;
@@ -48,7 +92,11 @@ struct ili210x {
 	struct touchscreen_properties prop;
 	int slots[MAX_POINTS];
 	struct input_mt_pos pos[MAX_POINTS];
-	struct touchdata touchdata;
+
+	const struct protocol_info *proto;
+	unsigned int max_points;
+	size_t data_size;
+	void *data_buf;
 };
 
 static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
@@ -77,22 +125,22 @@ static int ili210x_read_reg(struct i2c_client *client, u8 reg, void *buf,
 	return 0;
 }
 
-static int ili210x_read_state(struct ili210x *priv)
+static int ili210x_read_state_v1(struct ili210x *priv)
 {
 	struct i2c_client *client = priv->client;
-	struct touchdata *touchdata = &priv->touchdata;
+	struct touchdata_v1 *touchdata = priv->data_buf;
 	int i;
 	unsigned int x, y;
 	int np = 0;
 	int error;
 
 	error = ili210x_read_reg(client, REG_TOUCHDATA, touchdata,
-				 sizeof(*touchdata));
+				 priv->data_size);
 	if (error)
 		return error;
 
-	for (i = 0; i < MAX_POINTS; i++) {
-		struct point *p = &touchdata->points[i];
+	for (i = 0; i < priv->max_points; i++) {
+		struct point_v1 *p = &touchdata->points[i];
 
 		if (!(touchdata->status & (1 << i)))
 			continue;
@@ -106,6 +154,79 @@ static int ili210x_read_state(struct ili210x *priv)
 	return np;
 }
 
+static int ili210x_read_state_v2(struct ili210x *priv)
+{
+	struct i2c_client *client = priv->client;
+	struct touchdata_v2 *td = priv->data_buf;
+	int np = 0;
+	int error;
+	int i;
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA, &td->npoints, 1);
+	if (error)
+		return error;
+
+	if (!td->npoints)
+		return 0;
+
+	if (td->npoints > priv->max_points) {
+		dev_warn(&client->dev, "too many points: %d\n", td->npoints);
+		td->npoints = priv->max_points;
+	}
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA + 1, &td->points,
+				 td->npoints * sizeof(td->points[0]));
+	if (error)
+		return error;
+
+	for (i = 0; i < td->npoints; i++) {
+		struct point_v2 *p = &td->points[i];
+		unsigned int x, y;
+
+		if ((p->status & 0xc0) != 0x80)
+			continue;
+
+		x = be16_to_cpu(p->x);
+		y = be16_to_cpu(p->y);
+
+		touchscreen_set_mt_pos(&priv->pos[np++], &priv->prop, x, y);
+	}
+
+	return np;
+}
+
+static int ili210x_read_state_v3(struct ili210x *priv)
+{
+	struct i2c_client *client = priv->client;
+	struct touchdata_v3 *td = priv->data_buf;
+	int np = 0;
+	int error;
+	int i;
+
+	error = ili210x_read_reg(client, REG_TOUCHDATA, td, priv->data_size);
+	if (error)
+		return error;
+
+	if (!td->status)
+		return 0;
+
+	for (i = 0; i < priv->max_points; i++) {
+		struct point_v3 *p = &td->points[i];
+		unsigned int x, y;
+
+		x = be16_to_cpu(p->x);
+		y = be16_to_cpu(p->y);
+
+		if ((x & 0xc000) != 0x8000)
+			continue;
+
+		touchscreen_set_mt_pos(&priv->pos[np++], &priv->prop,
+				       x & 0x3fff, y);
+	}
+
+	return np;
+}
+
 static void ili210x_work(struct work_struct *work)
 {
 	struct ili210x *priv = container_of(work, struct ili210x,
@@ -113,7 +234,7 @@ static void ili210x_work(struct work_struct *work)
 	int np;
 	int i;
 
-	np = ili210x_read_state(priv);
+	np = priv->proto->read_state(priv);
 	if (np < 0) {
 		dev_err(&priv->client->dev, "Error reading touch data: %d\n",
 			np);
@@ -183,6 +304,30 @@ static const struct attribute_group ili210x_attr_group = {
 	.attrs = ili210x_attributes,
 };
 
+static const struct protocol_info ili210x_proto_v1 = {
+	.version_size	= 3,
+	.info_size	= 6,
+	.data_size	= sizeof(struct touchdata_v1),
+	.point_size	= sizeof(struct point_v1),
+	.read_state	= ili210x_read_state_v1,
+};
+
+static const struct protocol_info ili210x_proto_v2 = {
+	.version_size	= 8,
+	.info_size	= 10,
+	.data_size	= sizeof(struct touchdata_v2),
+	.point_size	= sizeof(struct point_v2),
+	.read_state	= ili210x_read_state_v2,
+};
+
+static const struct protocol_info ili210x_proto_v3 = {
+	.version_size	= 8,
+	.info_size	= 10,
+	.data_size	= sizeof(struct touchdata_v3),
+	.point_size	= sizeof(struct point_v3),
+	.read_state	= ili210x_read_state_v3,
+};
+
 static int ili210x_i2c_probe(struct i2c_client *client,
 				       const struct i2c_device_id *id)
 {
@@ -190,8 +335,9 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	struct gpio_desc *reset;
 	struct ili210x *priv;
 	struct input_dev *input;
-	struct panel_info panel;
-	struct firmware_version firmware;
+	struct protocol_version pver;
+	struct panel_info panel = { };
+	struct firmware_version firmware= { };
 	int xmax, ymax;
 	int error;
 
@@ -202,6 +348,10 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
+	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
 	reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
 	if (reset) {
 		msleep(10);
@@ -209,17 +359,60 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 		msleep(300);
 	}
 
+	error = ili210x_read_reg(client, REG_PROTOCOL_VERSION, &pver,
+				 sizeof(pver));
+	if (error) {
+		dev_err(dev, "error reading protocol version: %d\n", error);
+		return error;
+	}
+
+	dev_info(dev, "protocol version %d.%d.%d\n",
+		 pver.major, pver.minor, pver.release);
+
+	switch (pver.major) {
+	case 0:
+	case 1:
+		priv->proto = &ili210x_proto_v1;
+		priv->max_points = 2;
+		break;
+
+	case 2:
+		priv->proto = &ili210x_proto_v2;
+		break;
+
+	case 3:
+		priv->proto = &ili210x_proto_v3;
+		break;
+
+	default:
+		dev_err(dev, "unknown protocol version\n");
+		return -EINVAL;
+	}
+
 	/* Get firmware version */
 	error = ili210x_read_reg(client, REG_FIRMWARE_VERSION,
-				 &firmware, sizeof(firmware));
+				 &firmware, priv->proto->version_size);
 	if (error) {
 		dev_err(dev, "Failed to get firmware version, err: %d\n",
 			error);
 		return error;
 	}
 
+	if (pver.major < 2) {
+		dev_info(dev, "firmware version %d.%d.%d\n",
+			 firmware.fver[0], firmware.fver[1], firmware.fver[2]);
+	} else {
+		dev_info(dev, "firmware version %d.%d.%d.%d\n",
+			 firmware.fver[0], firmware.fver[1],
+			 firmware.fver[2], firmware.fver[3]);
+		dev_info(dev, "customer version %d.%d.%d.%d\n",
+			 firmware.cver[0], firmware.cver[1],
+			 firmware.cver[2], firmware.cver[3]);
+	}
+
 	/* get panel info */
-	error = ili210x_read_reg(client, REG_PANEL_INFO, &panel, sizeof(panel));
+	error = ili210x_read_reg(client, REG_PANEL_INFO, &panel,
+				 priv->proto->info_size);
 	if (error) {
 		dev_err(dev, "Failed to get panel information, err: %d\n",
 			error);
@@ -229,8 +422,26 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	xmax = le16_to_cpu(panel.xmax);
 	ymax = le16_to_cpu(panel.ymax);
 
-	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
-	if (!priv)
+	if (priv->proto->info_size > 5)
+		priv->max_points = panel.max_points;
+
+	if (!priv->max_points) {
+		dev_err(dev, "max points is 0\n");
+		return -EINVAL;
+	}
+
+	if (priv->max_points > MAX_POINTS) {
+		dev_warn(dev, "max points %d, limiting to %d\n",
+			 priv->max_points, MAX_POINTS);
+		priv->max_points = MAX_POINTS;
+	} else {
+		dev_info(dev, "max points %d\n", priv->max_points);
+	}
+
+	priv->data_size = priv->proto->data_size +
+		priv->max_points * priv->proto->point_size;
+	priv->data_buf = devm_kzalloc(dev, priv->data_size, GFP_KERNEL);
+	if (!priv->data_buf)
 		return -ENOMEM;
 
 	input = devm_input_allocate_device(dev);
@@ -256,7 +467,7 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 
 	/* Multi touch */
-	input_mt_init_slots(input, MAX_POINTS,
+	input_mt_init_slots(input, priv->max_points,
 		INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED | INPUT_MT_TRACK);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
@@ -287,10 +498,6 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 	}
 
 	device_init_wakeup(dev, 1);
-
-	dev_dbg(dev,
-		"ILI210x initialized (IRQ: %d), firmware version %d.%d.%d",
-		client->irq, firmware.id, firmware.major, firmware.minor);
 
 	return 0;
 
