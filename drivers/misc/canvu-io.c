@@ -494,7 +494,7 @@ static int canvu_io_probe(struct serdev_device *sdev)
 		goto err_out;
 	}
 
-	err = devm_gpiochip_add_data(dev, &cio->gpio, NULL);
+	err = gpiochip_add(&cio->gpio);
 	if (err)
 		goto err_out;
 
@@ -511,7 +511,11 @@ err_out:
 
 static void canvu_io_remove(struct serdev_device *sdev)
 {
+	struct canvu_io *cio = serdev_device_get_drvdata(sdev);
+
+	gpiochip_remove(&cio->gpio);
 	serdev_device_close(sdev);
+	cancel_delayed_work_sync(&cio->dwork);
 }
 
 static const struct of_device_id canvu_io_dt_ids[] = {
