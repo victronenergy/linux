@@ -542,6 +542,7 @@ static SIMPLE_DEV_PM_OPS(ili210x_i2c_pm,
 
 static const struct i2c_device_id ili210x_i2c_id[] = {
 	{ "ili210x", 0 },
+	{ "ili2511", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, ili210x_i2c_id);
