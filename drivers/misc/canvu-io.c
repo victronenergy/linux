@@ -24,6 +24,7 @@ struct canvu_io {
 	struct serdev_device *sdev;
 	struct delayed_work dwork;
 	struct mutex lock;
+	bool ready;
 
 	struct gpio_chip gpio;
 	int nr_out;
@@ -166,6 +167,11 @@ static int canvu_io_handle_version(struct canvu_io *cio)
 	cio->inbuf[cio->inpos - 3] = 0;
 
 	dev_info(&cio->sdev->dev, "version: %s\n", cio->inbuf + 3);
+
+	if (!cio->ready) {
+		cio->ready = true;
+		wake_up(&cio->gpio_wait);
+	}
 
 	return 0;
 }
@@ -381,7 +387,6 @@ static int canvu_io_gpio_init(struct device *dev, int nr_out, int nr_in)
 {
 	struct canvu_io *cio = dev_get_drvdata(dev);
 	int npins = nr_out + nr_in;
-	int err;
 
 	cio->nr_out = nr_out;
 	cio->nr_in = nr_in;
@@ -407,10 +412,6 @@ static int canvu_io_gpio_init(struct device *dev, int nr_out, int nr_in)
 	cio->gpio.get = canvu_io_gpio_get;
 	cio->gpio.set = canvu_io_gpio_set;
 
-	err = devm_gpiochip_add_data(dev, &cio->gpio, NULL);
-	if (err)
-		return err;
-
 	return 0;
 }
 
@@ -434,6 +435,7 @@ static int canvu_io_probe(struct serdev_device *sdev)
 	u32 nr_in;
 	u32 rate;
 	int err;
+	int i;
 
 	cio = devm_kzalloc(dev, sizeof(*cio), GFP_KERNEL);
 	if (!cio)
@@ -479,12 +481,32 @@ static int canvu_io_probe(struct serdev_device *sdev)
 	serdev_device_set_flow_control(sdev, false);
 
 	strcpy(cio->outbuf, "#v*");
-	canvu_io_send(cio, 3);
+
+	for (i = 0; i < 3; i++) {
+		int tmo = msecs_to_jiffies(40);
+		canvu_io_send(cio, 3);
+		if (wait_event_timeout(cio->gpio_wait, cio->ready, tmo))
+			break;
+	}
+
+	if (!cio->ready) {
+		err = -ENODEV;
+		goto err_out;
+	}
+
+	err = devm_gpiochip_add_data(dev, &cio->gpio, NULL);
+	if (err)
+		goto err_out;
 
 	cio->gpio_update = MAX_GPIO_RETRY;
 	schedule_delayed_work(&cio->dwork, 0);
 
 	return 0;
+
+err_out:
+	serdev_device_close(sdev);
+
+	return err;
 }
 
 static void canvu_io_remove(struct serdev_device *sdev)
