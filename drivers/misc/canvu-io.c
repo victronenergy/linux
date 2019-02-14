@@ -274,8 +274,6 @@ static int canvu_io_send(struct canvu_io *cio, size_t len)
 		return ret;
 	}
 
-	serdev_device_write_flush(sdev);
-
 	return 0;
 }
 
