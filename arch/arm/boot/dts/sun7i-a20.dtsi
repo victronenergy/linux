@@ -956,9 +956,33 @@
 				function = "uart0";
 			};
 
+			/omit-if-no-ref/
+			uart0_pf_pins: uart0-pf-pins {
+				pins = "PF2", "PF4";
+				function = "uart0";
+			};
+
 			uart1_pa_pins: uart1-pa-pins {
 				pins = "PA10", "PA11";
 				function = "uart1";
+			};
+
+			/omit-if-no-ref/
+			uart1_cts_rts_pa_pins: uart1-cts-rts-pa-pins {
+				pins = "PA12", "PA13";
+				function = "uart1";
+			};
+
+			/omit-if-no-ref/
+			uart2_pa_pins: uart2-pa-pins {
+				pins = "PA2", "PA3";
+				function = "uart2";
+			};
+
+			/omit-if-no-ref/
+			uart2_cts_rts_pa_pins: uart2-cts-rts-pa-pins {
+				pins = "PA0", "PA1";
+				function = "uart2";
 			};
 
 			uart2_pi_pins: uart2-pi-pins {
@@ -983,6 +1007,12 @@
 
 			uart3_ph_pins: uart3-ph-pins {
 				pins = "PH0", "PH1";
+				function = "uart3";
+			};
+
+			/omit-if-no-ref/
+			uart3_cts_rts_ph_pins: uart3-cts-rts-ph-pins {
+				pins = "PH2", "PH3";
 				function = "uart3";
 			};
 
