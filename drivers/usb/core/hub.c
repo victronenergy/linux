@@ -1328,6 +1328,9 @@ static int hub_configure(struct usb_hub *hub,
 	unsigned unit_load;
 	unsigned full_load;
 	unsigned maxchild;
+	struct property *prop;
+	const __be32 *cur;
+	u32 val;
 
 	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_KERNEL);
 	if (!hub->buffer) {
@@ -1627,6 +1630,17 @@ static int hub_configure(struct usb_hub *hub,
 			message = "can't update HCD hub info";
 			goto fail;
 		}
+	}
+
+	of_property_for_each_u32(hub_dev->of_node, "non-removable-ports",
+				 prop, cur, val) {
+		if (val < 1 || val > hdev->maxchild) {
+			dev_warn(hub_dev, "port number %u out of range\n", val);
+			continue;
+		}
+
+		hub->ports[val - 1]->connect_type =
+			USB_PORT_CONNECT_TYPE_HARD_WIRED;
 	}
 
 	usb_hub_adjust_deviceremovable(hdev, hub->descriptor);
