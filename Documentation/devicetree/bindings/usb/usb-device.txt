@@ -66,6 +66,10 @@ Required properties for host-controller nodes with device nodes:
 - #size-cells: shall be 0
 
 
+Optional properties for hub and host-controller nodes:
+- non-removable-ports: list of hardwired downstream ports
+
+
 Example:
 
 &usb1 {	/* host controller */
