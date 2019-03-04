@@ -510,6 +510,7 @@ config CANVU_IO
 	tristate "CANvu digital/analog I/O controller"
 	depends on OF
 	select GPIOLIB
+	select IRQ_SIM
 	select SERIAL_DEV_BUS
 
 config CANVU_IO_GPIO_BASE

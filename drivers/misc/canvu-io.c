@@ -9,6 +9,8 @@
 
 #include <linux/module.h>
 #include <linux/gpio/driver.h>
+#include <linux/irq.h>
+#include <linux/irq_sim.h>
 #include <linux/of_gpio.h>
 #include <linux/serdev.h>
 #include <linux/wait.h>
@@ -32,6 +34,8 @@ struct canvu_io {
 	u8 *pins;
 	int gpio_update;
 	wait_queue_head_t gpio_wait;
+
+	struct irq_sim irq;
 };
 
 static inline struct canvu_io *gpio_to_canvu_io(struct gpio_chip *g)
@@ -82,6 +86,7 @@ static int canvu_io_handle_input(struct canvu_io *cio)
 	int pin = cio->nr_out;
 	int evt;
 	int val;
+	int old;
 
 	while (p < end - 6 && *p != '*' && pin < cio->gpio.ngpio) {
 		if (*p++ != ',')
@@ -100,7 +105,22 @@ static int canvu_io_handle_input(struct canvu_io *cio)
 		if ((unsigned)val > 1)
 			return -EINVAL;
 
-		cio->pins[pin++] = val;
+		old = cio->pins[pin];
+		cio->pins[pin] = val;
+
+		if (val != old) {
+			int irq_offs = pin - cio->nr_out;
+			struct irq_desc *desc =
+				irq_to_desc(cio->irq.irq_base + irq_offs);
+			int type = irqd_get_trigger_type(&desc->irq_data);
+			int edge = val ? IRQ_TYPE_EDGE_RISING :
+				IRQ_TYPE_EDGE_FALLING;
+
+			if (type & edge)
+				irq_sim_fire(&cio->irq, irq_offs);
+		}
+
+		pin++;
 	}
 
 	return 0;
@@ -383,10 +403,21 @@ static void canvu_io_gpio_set(struct gpio_chip *chip, unsigned offset, int val)
 	canvu_io_set_output(cio, offset, val);
 }
 
+static int canvu_io_gpio_to_irq(struct gpio_chip *chip, unsigned int offset)
+{
+	struct canvu_io *cio = gpio_to_canvu_io(chip);
+
+	if (offset < cio->nr_out)
+		return -EINVAL;
+
+	return irq_sim_irqnum(&cio->irq, offset - cio->nr_out);
+}
+
 static int canvu_io_gpio_init(struct device *dev, int nr_out, int nr_in)
 {
 	struct canvu_io *cio = dev_get_drvdata(dev);
 	int npins = nr_out + nr_in;
+	int irq_base;
 
 	cio->nr_out = nr_out;
 	cio->nr_in = nr_in;
@@ -411,6 +442,11 @@ static int canvu_io_gpio_init(struct device *dev, int nr_out, int nr_in)
 	cio->gpio.direction_output = canvu_io_gpio_direction_output;
 	cio->gpio.get = canvu_io_gpio_get;
 	cio->gpio.set = canvu_io_gpio_set;
+	cio->gpio.to_irq = canvu_io_gpio_to_irq;
+
+	irq_base = devm_irq_sim_init(dev, &cio->irq, nr_in);
+	if (irq_base < 0)
+		return irq_base;
 
 	return 0;
 }
