@@ -55,6 +55,8 @@
 		serial3 = &uart3;
 		ethernet0 = &emac;
 		i2c0 = &i2c0;
+		watchdog0 = &ext_wdt;
+		watchdog1 = &wdt0;
 	};
 
 	chosen {
@@ -93,7 +95,7 @@
 		};
 	};
 
-	watchdog {
+	ext_wdt: watchdog {
 		compatible = "linux,wdt-gpio";
 		gpios = <&r_pio 0 11 GPIO_ACTIVE_HIGH>;
 		hw_algo = "toggle";
