@@ -49,13 +49,15 @@
 		serial0 = &uart0;
 		ethernet0 = &emac;
 		i2c0 = &i2c0;
+		watchdog0 = &ext_wdt;
+		watchdog1 = &wdt0;
 	};
 
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
 
-	watchdog {
+	ext_wdt: watchdog {
 		compatible = "linux,wdt-gpio";
 		gpios = <&pio 2 0 GPIO_ACTIVE_HIGH>;
 		hw_algo = "toggle";
