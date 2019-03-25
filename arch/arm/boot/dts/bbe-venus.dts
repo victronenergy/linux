@@ -109,10 +109,26 @@
 		compatible = "usb424,2514";
 		reg = <1>;
 
+		#address-cells = <1>;
+		#size-cells = <0>;
+
 		wireless-controller@4 {
 			compatible = "usbbda,b720";
 			reg = <4>;
 			removable = <0>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			bluetooth@0 {
+				reg = <0 1>;
+				status = "disabled";
+			};
+
+			bluetooth@1 {
+				reg = <1 1>;
+				status = "disabled";
+			};
 		};
 	};
 };
