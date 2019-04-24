@@ -847,6 +847,11 @@ static u8 get_auth_method(struct smp_chan *smp, u8 local_io, u8 remote_io)
 	return gen_method[remote_io][local_io];
 }
 
+static int forced_passkey = -1;
+
+module_param(forced_passkey, int, 0600);
+MODULE_PARM_DESC(forced_passkey, "Forced passkey for device w/o keyboard or display");
+
 static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
 						u8 local_io, u8 remote_io)
 {
@@ -924,6 +929,8 @@ static int tk_request(struct l2cap_conn *conn, u8 remote_oob, u8 auth,
 	if (smp->method == CFM_PASSKEY) {
 		memset(smp->tk, 0, sizeof(smp->tk));
 		get_random_bytes(&passkey, sizeof(passkey));
+		if (forced_passkey != -1)
+			passkey = forced_passkey;
 		passkey %= 1000000;
 		put_unaligned_le32(passkey, smp->tk);
 		bt_dev_dbg(hcon->hdev, "PassKey: %u", passkey);
@@ -2827,6 +2834,8 @@ static int smp_cmd_public_key(struct l2cap_conn *conn, struct sk_buff *skb)
 	if (smp->method == DSP_PASSKEY) {
 		get_random_bytes(&hcon->passkey_notify,
 				 sizeof(hcon->passkey_notify));
+		if (forced_passkey != -1)
+			hcon->passkey_notify = forced_passkey;
 		hcon->passkey_notify %= 1000000;
 		hcon->passkey_entered = 0;
 		smp->passkey_round = 0;
