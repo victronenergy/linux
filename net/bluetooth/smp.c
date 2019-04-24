@@ -2677,6 +2677,11 @@ static u8 sc_select_method(struct smp_chan *smp)
 	return method;
 }
 
+static int forced_passkey = -1;
+
+module_param(forced_passkey, int, 0600);
+MODULE_PARM_DESC(forced_passkey, "Forced passkey for device w/o keyboard or display");
+
 static int smp_cmd_public_key(struct l2cap_conn *conn, struct sk_buff *skb)
 {
 	struct smp_cmd_public_key *key = (void *) skb->data;
@@ -2757,6 +2762,8 @@ static int smp_cmd_public_key(struct l2cap_conn *conn, struct sk_buff *skb)
 	if (smp->method == DSP_PASSKEY) {
 		get_random_bytes(&hcon->passkey_notify,
 				 sizeof(hcon->passkey_notify));
+		if (forced_passkey != -1)
+			hcon->passkey_notify = forced_passkey;
 		hcon->passkey_notify %= 1000000;
 		hcon->passkey_entered = 0;
 		smp->passkey_round = 0;
