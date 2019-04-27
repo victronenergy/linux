@@ -20,6 +20,7 @@
    SOFTWARE IS DISCLAIMED.
 */
 
+#include <linux/module.h>
 #include <linux/debugfs.h>
 #include <linux/scatterlist.h>
 #include <linux/crypto.h>
