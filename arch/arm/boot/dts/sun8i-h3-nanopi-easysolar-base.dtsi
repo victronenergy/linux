@@ -40,28 +40,41 @@
  *     OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "sun8i-h3-nanopi-easysolar-base.dtsi"
-#include "sun8i-h3-nanopi-ve-chardisp.dtsi"
+#include "sun8i-h3-nanopi-ve-common.dtsi"
 
-/ {
-	model = "EasySolar-II";
-	compatible = "victronenergy,easysolar",
-		     "friendlyarm,nanopi-neo-core",
-		     "allwinner,sun8i-h3";
+&ohci2 {
+	non-removable-ports = <1>;
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	serial@1 {
+		compatible = "usb403,6015";
+		reg = <1>;
+	};
 };
 
-&ehci2 {
-	status = "disabled";
+&reg_usb2_vbus {
+	gpio = <&r_pio 0 11 GPIO_ACTIVE_HIGH>; // GPIOL11 / VUSB_ENABLE
+	status = "okay";
+};
+
+&usbphy {
+	usb2_vbus-supply = <&reg_usb2_vbus>;
 };
 
 &uart1 {
-	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
 };
 
 &uart2 {
-	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
 };
 
 &uart3 {
-	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart3_pins>;
 };
