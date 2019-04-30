@@ -98,18 +98,8 @@
 	};
 };
 
-&pio {
-	disp_gpio_pins: disp_gpio {
-		pins = "PG11";
-		function = "gpio_in";
-		bias-pull-up;
-	};
-};
-
 &i2c0 {
 	disp_gpio: gpio@20 {
-		pinctrl-names = "default";
-		pinctrl-0 = <&disp_gpio_pins>;
 		compatible = "nxp,pca9555";
 		reg = <0x20>;
 		interrupt-parent = <&pio>;
