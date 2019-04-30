@@ -47,6 +47,9 @@
 
 	aliases {
 		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &uart3;
 		ethernet0 = &emac;
 		i2c0 = &i2c0;
 		watchdog0 = &ext_wdt;
