@@ -42,6 +42,12 @@
 
 #include "sun8i-h3-nanopi-ve-common.dtsi"
 
+/ {
+	aliases {
+		usb-serial0 = &slcan;
+	};
+};
+
 &ohci2 {
 	non-removable-ports = <1>;
 	status = "okay";
@@ -49,7 +55,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	serial@1 {
+	slcan: serial@1 {
 		compatible = "usb403,6015";
 		reg = <1>;
 	};
