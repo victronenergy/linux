@@ -41,7 +41,9 @@
  */
 
 /dts-v1/;
+
 #include "sun7i-a20-einstein.dtsi"
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Color Control GX2";
@@ -51,11 +53,16 @@
 
 	aliases {
 		ethernet0 = &emac;
+		rtc0 = &rtc0;
+		rtc1 = &rtc;
+		watchdog0 = &ext_wdt;
+		watchdog1 = &wdt;
 	};
 
 	hdmi-connector {
 		compatible = "hdmi-connector";
 		type = "a";
+		ddc-i2c-bus = <&i2c2>;
 
 		port {
 			hdmi_con_in: endpoint {
@@ -64,15 +71,53 @@
 		};
 	};
 
+	button {
+		compatible = "gpio-keys";
+
+		button {
+			linux,code = <KEY_CONFIG>;
+			gpios = <&pio 7 8 GPIO_ACTIVE_LOW>; /* PH8 */
+		};
+	};
+
 	leds {
 		compatible = "gpio-leds";
 
 		status {
 			label = "status";
-			gpios = <&pio 1 2 GPIO_ACTIVE_HIGH>; /* PB2 */
-			linux,default-trigger = "heartbeat";
+			gpios = <&pio 6 6 GPIO_ACTIVE_HIGH>; /* PG6 */
+			linux,default-trigger = "timer";
+		};
+
+		error {
+			label = "error";
+			gpios = <&pio 6 7 GPIO_ACTIVE_HIGH>; /* PG7 */
+			default-state = "off";
+		};
+
+		bluetooth {
+			label = "bluetooth";
+			gpios = <&pio 6 8 GPIO_ACTIVE_HIGH>; /* PG8 */
+			default-state = "off";
 		};
 	};
+
+	buzzer {
+		compatible = "pwm-beeper";
+		pwms = <&pwm 0 1000000 0>;
+	};
+
+	ext_wdt: watchdog {
+		compatible = "linux,wdt-gpio";
+		gpios = <&pio 1 12 GPIO_ACTIVE_HIGH>; /* PB12 */
+		hw_algo = "toggle";
+		hw_margin_ms = <30000>;
+		always-running;
+	};
+};
+
+&reg_ldo3 {
+	regulator-always-on;
 };
 
 &de {
@@ -121,6 +166,10 @@
 	cd-gpios = <&pio 8 10 GPIO_ACTIVE_LOW>; /* PI10 */
 };
 
+&mmc3 {
+	status = "okay";
+};
+
 &i2c1 {
 	status = "okay";
 
@@ -131,7 +180,7 @@
 		read-only;
 	};
 
-	rtc1: pcf8523@68 {
+	rtc0: rtc@68 {
 		compatible = "nxp,pcf8523";
 		status = "okay";
 		reg = <0x68>;
@@ -140,27 +189,55 @@
 
 &i2c2 {
 	status = "okay";
+
+	touchscreen@38 {
+		compatible = "edt,edt-ft5316", "edt,edt-ft5306";
+		reg = <0x38>;
+		interrupt-parent = <&pio>;
+		interrupts = <8 11 IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+		read-only;
+	};
+
+	backlight@51 {
+		compatible = "victron,gxdisp-backlight";
+		reg = <0x51>;
+		default-on;
+		default-brightness = <15>;
+	};
 };
 
 &i2c3 {
-	clock-frequency = <400000>;
 	status = "okay";
 
-	adc@34 {
-		compatible = "maxim,max11607";
-		reg = <0x34>;
+	adc@33 {
+		/* compatible TBD */
+		reg = <0x33>;
 	};
+};
+
+&pwm {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm0_pin>;
+	status = "okay";
 };
 
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart1_pa_pins>;
+	rts-gpios = <&pio 0 9 GPIO_ACTIVE_HIGH>; /* PA9 */
 	status = "okay";
 };
 
 &uart3 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart3_pg_pins>;
+	pinctrl-0 = <&uart3_ph_pins>, <&uart3_cts_rts_ph_pins>;
+	uart-has-rtscts;
 	status = "okay";
 };
 
@@ -190,19 +267,50 @@
 
 &usb_otg {
 	dr_mode = "host";
+	non-removable-ports = <1>;
+
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	wireless-controller@1 {
-		compatible = "usbbda,b720";
+	usb-hub@1 {
+		compatible = "usb424,2422";
 		reg = <1>;
-		removable = <0>;
+		non-removable-ports = <1>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		wireless-controller@1 {
+			compatible = "usbbda,b720";
+			reg = <1>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			bluetooth@0 {
+				compatible = "usbifbda,b720.config1.0";
+				reg = <0 1>;
+				status = "disabled";
+			};
+
+			bluetooth@1 {
+				compatible = "usbifbda,b720.config1.1";
+				reg = <1 1>;
+				status = "disabled";
+			};
+		};
 	};
 };
 
 &usbphy {
+	usb0_vbus-supply = <&reg_usb0_vbus>;
 	usb1_vbus-supply = <&reg_usb1_vbus>;
 	usb2_vbus-supply = <&reg_usb2_vbus>;
+};
+
+&reg_usb0_vbus {
+	gpio = <&pio 1 8 GPIO_ACTIVE_HIGH>; /* PB8 */
+	status = "okay";
 };
 
 &reg_usb1_vbus {
