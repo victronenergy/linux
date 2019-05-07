@@ -448,6 +448,8 @@ config PANEL_BOOT_MESSAGE
 choice
 	prompt "Backlight initial state"
 	default CHARLCD_BL_FLASH
+	---help---
+	  Select the initial backlight state on boot or module load.
 
 	config CHARLCD_BL_OFF
 		bool "Off"
