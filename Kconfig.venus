@@ -1,0 +1,298 @@
+# Kconfig doesn't have a counterpart to select for blocking another option.
+# Moreover, using "depends on !FOO" leads to illegal recursive dependencies.
+# The best we can do is display a warning if a disallowed option is enabled.
+
+config VENUS_BLOCKER
+	bool
+	default y if WATCHDOG_HANDLE_BOOT_ENABLED
+	default y if PANIC_TIMEOUT >= 0
+
+comment "Venus disallowed option(s) enabled"
+	depends on VENUS_BLOCKER
+
+config VENUS
+	bool "Venus defaults"
+
+	# kernel features
+	select SYSVIPC
+	select POSIX_MQUEUE
+	select NO_HZ_IDLE
+	select HIGH_RES_TIMERS
+	select HIGHMEM
+	select BSD_PROCESS_ACCT
+	select BSD_PROCESS_ACCT_V3
+	select TASKSTATS
+	select TASK_DELAY_ACCT
+	select TASK_XACCT
+	select TASK_IO_ACCOUNTING
+	select IRQ_TIME_ACCOUNTING
+	select IKCONFIG
+	select IKCONFIG_PROC
+	select JUMP_LABEL
+	select PERF_EVENTS
+	select MODULES
+	select MODULE_UNLOAD
+
+	# system options
+	select VDSO
+	select ARM_ERRATA_430973
+	select ARM_ERRATA_643719 if SMP
+	select ARM_ERRATA_720789
+	select ARM_ERRATA_754322
+	select ARM_ERRATA_775420
+	select ARM_ERRATA_814220
+
+	# floating-point
+	select VFP
+	select NEON
+	select KERNEL_MODE_NEON
+
+	# memory management
+	select COMPACTION
+	select CMA
+	select DMA_CMA
+
+	# power management
+	select PM
+	select CPU_FREQ
+	select CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+	select CPUFREQ_DT
+	select CPU_IDLE
+	select ARM_CPUIDLE
+
+	# crypto
+	select ARM_CRYPTO
+	select CRYPTO_SHA1_ARM_NEON
+	select CRYPTO_SHA256_ARM
+	select CRYPTO_AES_ARM
+	select CRYPTO_AES_ARM_BS
+	select CRYPTO_CRC32_ARM_CE
+
+	# initrd
+	select BLK_DEV
+	select BLK_DEV_INITRD
+	select RD_GZIP
+
+	# networking
+	select INET
+	select IPV6
+	select IPV6_OPTIMISTIC_DAD
+	select IPV6_ROUTER_PREF
+	select IPV6_ROUTE_INFO
+	select IP_MULTICAST
+	select MACVLAN
+	select NET
+	select NET_CORE
+	select NETDEVICES
+	select NETFILTER
+	select NETFILTER_ADVANCED
+	select PACKET
+	select UNIX
+
+	# filesystems
+	select CONFIGFS_FS
+	select DEVTMPFS
+	select DEVTMPFS_MOUNT
+	select EXT4_FS
+	select EXT4_USE_FOR_EXT2
+	select OVERLAY_FS
+	select OVERLAY_FS_INDEX
+	select OVERLAY_FS_METACOPY
+	select OVERLAY_FS_REDIRECT_DIR
+	select PROC_FS
+	select PROC_SYSCTL
+	select TMPFS
+	select TMPFS_XATTR
+	select SYSFS
+	select VFAT_FS
+	select NLS_CODEPAGE_437
+	select NLS_ISO8859_1
+	select NLS_ISO8859_15
+	select NLS_UTF8
+	select INOTIFY_USER
+	select FANOTIFY
+
+	# input
+	select INPUT
+	select INPUT_EVDEV
+	select INPUT_KEYBOARD
+	select INPUT_MISC
+	select INPUT_UINPUT
+	select KEYBOARD_GPIO
+
+	# hwmon
+	select HWMON
+
+	# leds
+	select NEW_LEDS
+	select LEDS_CLASS
+	select LEDS_GPIO
+	select LEDS_TRIGGERS
+	select LEDS_TRIGGER_DEFAULT_ON
+	select LEDS_TRIGGER_TIMER
+	select LEDS_TRIGGER_SYNC_BLINK
+
+	# misc device options
+	select EEPROM_AT24
+	select GPIO_SYSFS
+
+	# mmc
+	select MMC
+	select MMC_BLOCK
+
+	# thermal
+	select THERMAL
+	select THERMAL_HWMON
+	select THERMAL_OF
+	select THERMAL_DEFAULT_GOV_STEP_WISE
+	select CPU_THERMAL
+
+	# usb
+	select USB_SUPPORT
+	select USB
+	select USB_ANNOUNCE_NEW_DEVICES
+	select USB_MON
+
+	# watchdog
+	select WATCHDOG
+	select WATCHDOG_NOWAYOUT
+	select WATCHDOG_SYSFS
+
+	# debugging
+	select DEBUG_BUGVERBOSE
+	select DEBUG_FS
+	select DEBUG_KERNEL
+	select MAGIC_SYSRQ
+	select PRINTK_TIME
+	select STACKTRACE
+	select SOFTLOCKUP_DETECTOR
+	select BOOTPARAM_SOFTLOCKUP_PANIC
+	select DETECT_HUNG_TASK
+	select BOOTPARAM_HUNG_TASK_PANIC
+	select WQ_WATCHDOG
+	select PANIC_ON_OOPS
+
+config VENUS_MODULES
+	def_tristate m if VENUS
+
+	# storage
+	select SCSI
+	select BLK_DEV_SD
+	select USB_STORAGE
+
+	# input
+	select HID
+	select HIDRAW
+	select USB_HID
+
+	# misc networking
+	select INET_DIAG
+	select INET_RAW_DIAG
+	select INET_UDP_DIAG
+	select NETLINK_DIAG
+	select NLMON
+	select PACKET_DIAG
+	select UNIX_DIAG
+	select TUN
+
+	# netfilter
+	select NF_CONNTRACK
+	select NETFILTER_XT_MATCH_COMMENT
+	select NETFILTER_XT_MATCH_CONNTRACK
+	select NETFILTER_XT_MATCH_MULTIPORT
+	select IP_NF_IPTABLES
+	select IP_NF_FILTER
+	select IP_NF_TARGET_REJECT
+	select IP6_NF_IPTABLES
+	select IP6_NF_FILTER
+	select IP6_NF_TARGET_REJECT
+
+	# canbus
+	select CAN
+	select CAN_RAW
+	select CAN_BCM
+	select CAN_KVASER_USB
+	select CAN_MCP25XXFD
+	select CAN_PEAK_USB
+	select CAN_SLCAN
+
+	# bluetooth
+	select BT
+	select BT_LE
+	select BT_HCIBTUSB
+	select BT_HCIBTUSB_BCM
+	select BT_HCIBTUSB_RTL
+	select CRYPTO_USER_API_HASH
+	select CRYPTO_USER_API_SKCIPHER
+
+	# wifi
+	select WLAN
+	select CFG80211
+	select MAC80211
+	select RFKILL
+	select WLAN_VENDOR_RALINK
+	select RT2X00
+	select RT2500USB
+	select RT73USB
+	select RT2800USB
+	select RT2800USB_RT33XX
+	select RT2800USB_RT35XX
+	select RT2800USB_RT3573
+	select RT2800USB_RT53XX
+	select RT2800USB_RT55XX
+	select RT2800USB_UNKNOWN
+	select WLAN_VENDOR_REALTEK
+	select RTL8187
+	select RTL_CARDS
+	select RTL8192CU
+
+	# ppp
+	select PPP
+	select PPP_BSDCOMP
+	select PPP_DEFLATE
+	select PPP_ASYNC
+
+	# usb-net
+	select USB_NET_DRIVERS
+	select USB_USBNET
+	select USB_NET_AX8817X
+	select USB_NET_AX88179_178A
+	select USB_NET_CDCETHER
+	select USB_NET_SMSC75XX
+	select USB_NET_SMSC95XX
+
+	# usb-serial
+	select USB_ACM
+	select USB_SERIAL
+	select USB_SERIAL_GENERIC
+	select USB_SERIAL_SIMPLE
+	select USB_SERIAL_ARK3116
+	select USB_SERIAL_BELKIN
+	select USB_SERIAL_CH341
+	select USB_SERIAL_WHITEHEAT
+	select USB_SERIAL_DIGI_ACCELEPORT
+	select USB_SERIAL_CP210X
+	select USB_SERIAL_CYPRESS_M8
+	select USB_SERIAL_FTDI_SIO
+	select USB_SERIAL_F81232
+	select USB_SERIAL_GARMIN
+	select USB_SERIAL_MCT_U232
+	select USB_SERIAL_MOS7720
+	select USB_SERIAL_MOS7840
+	select USB_SERIAL_MXUPORT
+	select USB_SERIAL_NAVMAN
+	select USB_SERIAL_PL2303
+	select USB_SERIAL_OTI6858
+	select USB_SERIAL_TI
+	select USB_SERIAL_XIRCOM
+	select USB_SERIAL_OPTION
+	select USB_SERIAL_SSU100
+	select USB_SERIAL_QT2
+
+	# i2c
+	select HID_CP2112
+	select I2C_CHARDEV
+
+	# sensors
+	select IIO
+	select TI_TLA2024
