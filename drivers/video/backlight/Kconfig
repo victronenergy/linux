@@ -463,6 +463,10 @@ config BACKLIGHT_LED
 	  If you have a LCD backlight adjustable by LED class driver, say Y
 	  to enable this driver.
 
+config BACKLIGHT_VICTRON_GX
+	tristate "Victron GX Display backlight"
+	depends on I2C
+
 endif # BACKLIGHT_CLASS_DEVICE
 
 endmenu
