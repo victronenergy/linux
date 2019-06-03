@@ -8,6 +8,7 @@
  */
 
 #include <linux/ctype.h>
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/i2c.h>
@@ -69,11 +70,6 @@ static int gxbl_read(struct gxbl *gxbl, u8 addr, void *buf, size_t len)
 		return -EIO;
 
 	return 0;
-}
-
-static int gxbl_write(struct gxbl *gxbl, u8 addr, void *buf, size_t len)
-{
-	return i2c_smbus_write_i2c_block_data(gxbl->i2c, addr, len, buf);
 }
 
 static int gxbl_read8(struct gxbl *gxbl, int addr)
@@ -248,9 +244,13 @@ static ssize_t adc_map_store(struct device *dev, struct device_attribute *attr,
 	if (i < GXBL_ADC_MAP_SIZE || *e)
 		return -EINVAL;
 
-	err = gxbl_write(gxbl, GXBL_ADC_MAP, val, GXBL_ADC_MAP_SIZE);
-	if (err)
-		return err;
+	for (i = 0; i < GXBL_ADC_MAP_SIZE; i++) {
+		err = gxbl_write8(gxbl, GXBL_ADC_MAP + i, val[i]);
+		if (err)
+			return err;
+
+		msleep(1);
+	}
 
 	return count;
 }
