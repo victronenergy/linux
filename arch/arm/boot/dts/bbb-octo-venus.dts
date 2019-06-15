@@ -86,6 +86,24 @@
 			compatible = "usb403,6015";
 			reg = <2>;
 		};
+
+		wireless-controller@3 {
+			compatible = "usbbda,b720";
+			reg = <3>;
+
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			bluetooth@0 {
+				reg = <0 1>;
+				status = "disabled";
+			};
+
+			bluetooth@1 {
+				reg = <1 1>;
+				status = "disabled";
+			};
+		};
 	};
 };
 
