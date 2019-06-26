@@ -112,9 +112,6 @@
 	wifi0: wifi@1 {
 		reg = <1>;
 		compatible = "brcm,bcm4329-fmac";
-		interrupt-parent = <&pio>;
-		interrupts = <7 10 IRQ_TYPE_LEVEL_LOW>;
-		interrupt-names = "host-wake";
 	};
 };
 
