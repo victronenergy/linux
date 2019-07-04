@@ -210,9 +210,12 @@
 		};
 
 		prm: prm@48306000 {
-			compatible = "ti,omap3-prm";
+			compatible = "ti,omap3-prm", "simple-bus";
 			reg = <0x48306000 0x4000>;
 			interrupts = <11>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x48306000 0x4000>;
 
 			prm_clocks: clocks {
 				#address-cells = <1>;
@@ -220,6 +223,11 @@
 			};
 
 			prm_clockdomains: clockdomains {
+			};
+
+			prm_gr: prm_gr@1250 {
+				compatible = "ti,omap3-rst", "syscon";
+				reg = <0x1250 0x10>;
 			};
 		};
 
