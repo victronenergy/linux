@@ -86,13 +86,13 @@
 		status {
 			label = "status";
 			gpios = <&pio 6 6 GPIO_ACTIVE_HIGH>; /* PG6 */
-			linux,default-trigger = "timer";
+			linux,default-trigger = "blink-slow";
 		};
 
-		error {
-			label = "error";
+		wifi {
+			label = "wifi";
 			gpios = <&pio 6 7 GPIO_ACTIVE_HIGH>; /* PG7 */
-			default-state = "off";
+			linux,default-trigger = "blink-slow";
 		};
 
 		bluetooth {
