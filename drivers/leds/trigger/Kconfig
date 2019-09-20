@@ -154,4 +154,9 @@ config LEDS_TRIGGER_TTY
 
 	  When build as a module this driver will be called ledtrig-tty.
 
+config LEDS_TRIGGER_SYNC_BLINK
+	tristate "LED synchrounous blink trigger"
+	help
+	  This allows LEDs to blink synchronously, fast or slow.
+
 endif # LEDS_TRIGGERS
