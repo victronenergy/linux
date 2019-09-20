@@ -161,4 +161,9 @@ config LEDS_TRIGGER_INPUT_EVENTS
 
 	  When build as a module this driver will be called ledtrig-input-events.
 
+config LEDS_TRIGGER_SYNC_BLINK
+	tristate "LED synchrounous blink trigger"
+	help
+	  This allows LEDs to blink synchronously, fast or slow.
+
 endif # LEDS_TRIGGERS
