@@ -126,4 +126,9 @@ config LEDS_TRIGGER_PANIC
 	  a different trigger.
 	  If unsure, say Y.
 
+config LEDS_TRIGGER_SYNC_BLINK
+	tristate "LED synchrounous blink trigger"
+	help
+	  This allows LEDs to blink synchronously, fast or slow.
+
 endif # LEDS_TRIGGERS
