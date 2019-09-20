@@ -144,4 +144,9 @@ config LEDS_TRIGGER_AUDIO
 	  the audio mute and mic-mute changes.
 	  If unsure, say N
 
+config LEDS_TRIGGER_SYNC_BLINK
+	tristate "LED synchrounous blink trigger"
+	help
+	  This allows LEDs to blink synchronously, fast or slow.
+
 endif # LEDS_TRIGGERS
