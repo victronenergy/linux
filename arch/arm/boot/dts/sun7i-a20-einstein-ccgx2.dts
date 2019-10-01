@@ -83,14 +83,14 @@
 	leds {
 		compatible = "gpio-leds";
 
-		status {
-			label = "status";
+		status-green {
+			label = "status-green";
 			gpios = <&pio 6 6 GPIO_ACTIVE_HIGH>; /* PG6 */
-			linux,default-trigger = "blink-slow";
+			default-state = "off";
 		};
 
-		wifi {
-			label = "wifi";
+		status-orange {
+			label = "status-orange";
 			gpios = <&pio 6 7 GPIO_ACTIVE_HIGH>; /* PG7 */
 			linux,default-trigger = "blink-slow";
 		};
