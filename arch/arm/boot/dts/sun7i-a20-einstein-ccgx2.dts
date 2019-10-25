@@ -216,9 +216,9 @@
 &i2c3 {
 	status = "okay";
 
-	adc@33 {
-		/* compatible TBD */
-		reg = <0x33>;
+	adc@12 {
+		compatible = "victron,cerbo-gx-adc";
+		reg = <0x12>;
 	};
 };
 
