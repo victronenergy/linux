@@ -1,0 +1,218 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2019 Mans Rullgard <mans@mansr.com>
+ */
+
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/iio/iio.h>
+
+#define MIN_FW_REV	2
+#define MAX_FW_REV	3
+
+#define NUM_CHANNELS	8
+#define MAX_AGE_MS	500
+
+struct cerbo_adc_config {
+	u8	id[2];
+	__le16	size;
+	u8	serial[16];
+	__le16	fw_rev;
+} __packed;
+
+struct cerbo_adc_data {
+	__le16	tank[2][4];
+	__le16	temp[2][4];
+	__le16	count;
+} __packed;
+
+struct cerbo_adc {
+	struct i2c_client *i2c;
+	int values[NUM_CHANNELS];
+	unsigned long time;
+	struct cerbo_adc_data data;
+};
+
+#define CERBO_ADC_CHANNEL(i)  {					\
+	.type			= IIO_VOLTAGE,			\
+	.indexed		= 1,				\
+	.channel		= i,				\
+	.info_mask_separate	= BIT(IIO_CHAN_INFO_RAW),	\
+}
+
+static const struct iio_chan_spec cerbo_adc_channels[] = {
+	CERBO_ADC_CHANNEL(0),
+	CERBO_ADC_CHANNEL(1),
+	CERBO_ADC_CHANNEL(2),
+	CERBO_ADC_CHANNEL(3),
+	CERBO_ADC_CHANNEL(4),
+	CERBO_ADC_CHANNEL(5),
+	CERBO_ADC_CHANNEL(6),
+	CERBO_ADC_CHANNEL(7),
+};
+
+static int cerbo_adc_valid(struct cerbo_adc *cadc)
+{
+	return time_before(jiffies, cadc->time + msecs_to_jiffies(MAX_AGE_MS));
+}
+
+static int cerbo_adc_update(struct cerbo_adc *cadc)
+{
+	struct i2c_client *client = cadc->i2c;
+	u8 data_addr = sizeof(struct cerbo_adc_config);
+	struct i2c_msg msg[2] = {
+		{
+			.addr	= client->addr,
+			.len	= 1,
+			.buf	= &data_addr,
+		},
+		{
+			.addr	= client->addr,
+			.flags	= I2C_M_RD,
+			.len	= sizeof(cadc->data),
+			.buf	= (u8 *)&cadc->data,
+		}
+	};
+	int buf;
+	int ch;
+	int i;
+
+	if (i2c_transfer(client->adapter, msg, 2) != 2)
+		return -EIO;
+
+	buf = le16_to_cpu(cadc->data.count) & 1;
+	ch = 0;
+
+	for (i = 0; i < 4; i++)
+		cadc->values[ch++] = le16_to_cpu(cadc->data.tank[buf][i]);
+
+	for (i = 0; i < 4; i++)
+		cadc->values[ch++] = le16_to_cpu(cadc->data.temp[buf][i]);
+
+	cadc->time = jiffies;
+
+	return 0;
+}
+
+static int cerbo_adc_read_raw(struct iio_dev *iio,
+			      const struct iio_chan_spec *chan,
+			      int *val, int *val2, long m)
+{
+	struct cerbo_adc *cadc = iio_priv(iio);
+	int err;
+
+	switch (m) {
+	case IIO_CHAN_INFO_RAW:
+		err = iio_device_claim_direct_mode(iio);
+		if (err)
+			return err;
+
+		if (!cerbo_adc_valid(cadc))
+			err = cerbo_adc_update(cadc);
+		iio_device_release_direct_mode(iio);
+		if (err)
+			return err;
+
+		*val = cadc->values[chan->channel];
+
+		return IIO_VAL_INT;
+	}
+
+	return -EINVAL;
+}
+
+static const struct iio_info cerbo_adc_info = {
+	.read_raw = &cerbo_adc_read_raw,
+};
+
+static int cerbo_adc_validate(struct i2c_client *client)
+{
+	struct device *dev = &client->dev;
+	struct cerbo_adc_config cfg;
+	int fw_rev;
+	int ret;
+
+	ret = i2c_smbus_read_i2c_block_data(client, 0, sizeof(cfg), (u8*)&cfg);
+
+	if (ret < 0)
+		return ret;
+
+	if (ret < sizeof(cfg))
+		return -EIO;
+
+	if (cfg.id[0] != 'V' && cfg.id[1] != 'E')
+		return -ENODEV;
+
+	if (le16_to_cpu(cfg.size) <
+	    sizeof(struct cerbo_adc_config) + sizeof(struct cerbo_adc_data) -
+	    offsetof(struct cerbo_adc_config, serial))
+		return -ENODEV;
+
+	fw_rev = le16_to_cpu(cfg.fw_rev);
+
+	if (fw_rev < MIN_FW_REV || fw_rev > MAX_FW_REV) {
+		dev_err(dev, "unsupported firmware version %d\n", fw_rev);
+		return -ENODEV;
+	}
+
+	dev_info(dev, "Cerbo GX ADC firware version %d\n", fw_rev);
+
+	return 0;
+}
+
+static int cerbo_adc_probe(struct i2c_client *client,
+			   const struct i2c_device_id *id)
+{
+	struct cerbo_adc *cadc;
+	struct iio_dev *iio;
+	int err;
+
+	err = cerbo_adc_validate(client);
+	if (err)
+		return err;
+
+	iio = devm_iio_device_alloc(&client->dev, sizeof(*cadc));
+	if (!iio)
+		return -ENOMEM;
+
+	i2c_set_clientdata(client, iio);
+
+	cadc = iio_priv(iio);
+	cadc->i2c = client;
+
+	iio->dev.parent = &client->dev;
+	iio->dev.of_node = client->dev.of_node;
+	iio->name = id->name;
+	iio->info = &cerbo_adc_info;
+	iio->modes = INDIO_DIRECT_MODE;
+	iio->channels = cerbo_adc_channels;
+	iio->num_channels = ARRAY_SIZE(cerbo_adc_channels);
+
+	cerbo_adc_update(cadc);
+
+	err = devm_iio_device_register(&client->dev, iio);
+	if (err)
+		return err;
+
+	return 0;
+}
+
+static const struct of_device_id cerbo_adc_dt_ids[] = {
+	{ .compatible = "victron,cerbo-gx-adc" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, cerbo_adc_dt_ids);
+
+static struct i2c_driver cerbo_adc_driver = {
+	.probe		= cerbo_adc_probe,
+	.driver = {
+		.name		= "cerbo-gx-adc",
+		.of_match_table	= cerbo_adc_dt_ids,
+	},
+};
+module_i2c_driver(cerbo_adc_driver);
+
+MODULE_AUTHOR("Mans Rullgard <mans@mansr.com>");
+MODULE_DESCRIPTION("Victron Energy Cerbo GX ADC");
+MODULE_LICENSE("GPL v2");
