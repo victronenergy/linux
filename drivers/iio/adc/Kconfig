@@ -1204,6 +1204,11 @@ config VF610_ADC
 	  This driver can also be built as a module. If so, the module will be
 	  called vf610_adc.
 
+config VICTRON_CERBOGX_ADC
+	tristate "Victron Energy Cerbo GX ADC"
+	depends on I2C
+	depends on OF
+
 config VIPERBOARD_ADC
 	tristate "Viperboard ADC support"
 	depends on MFD_VIPERBOARD && USB
