@@ -8,10 +8,10 @@
 #include <linux/i2c.h>
 #include <linux/iio/iio.h>
 
-#define MIN_FW_REV	2
-#define MAX_FW_REV	3
+#define MIN_FW_REV	4
+#define MAX_FW_REV	4
 
-#define NUM_CHANNELS	8
+#define NUM_CHANNELS	9
 #define MAX_AGE_MS	500
 
 struct cerbo_adc_config {
@@ -19,12 +19,12 @@ struct cerbo_adc_config {
 	__le16	size;
 	u8	serial[16];
 	__le16	fw_rev;
+	__le16	hw_rev;
 } __packed;
 
 struct cerbo_adc_data {
-	__le16	tank[2][4];
-	__le16	temp[2][4];
 	__le16	count;
+	__le16	channels[2][9];
 } __packed;
 
 struct cerbo_adc {
@@ -50,6 +50,7 @@ static const struct iio_chan_spec cerbo_adc_channels[] = {
 	CERBO_ADC_CHANNEL(5),
 	CERBO_ADC_CHANNEL(6),
 	CERBO_ADC_CHANNEL(7),
+	CERBO_ADC_CHANNEL(8),
 };
 
 static int cerbo_adc_valid(struct cerbo_adc *cadc)
@@ -84,11 +85,8 @@ static int cerbo_adc_update(struct cerbo_adc *cadc)
 	buf = le16_to_cpu(cadc->data.count) & 1;
 	ch = 0;
 
-	for (i = 0; i < 4; i++)
-		cadc->values[ch++] = le16_to_cpu(cadc->data.tank[buf][i]);
-
-	for (i = 0; i < 4; i++)
-		cadc->values[ch++] = le16_to_cpu(cadc->data.temp[buf][i]);
+	for (i = 0; i < NUM_CHANNELS; i++)
+		cadc->values[ch++] = le16_to_cpu(cadc->data.channels[buf][i]);
 
 	cadc->time = jiffies;
 
@@ -131,6 +129,7 @@ static int cerbo_adc_validate(struct i2c_client *client)
 	struct device *dev = &client->dev;
 	struct cerbo_adc_config cfg;
 	int fw_rev;
+	int hw_rev;
 	int ret;
 
 	ret = i2c_smbus_read_i2c_block_data(client, 0, sizeof(cfg), (u8*)&cfg);
@@ -150,13 +149,14 @@ static int cerbo_adc_validate(struct i2c_client *client)
 		return -ENODEV;
 
 	fw_rev = le16_to_cpu(cfg.fw_rev);
+	hw_rev = le16_to_cpu(cfg.hw_rev);
 
 	if (fw_rev < MIN_FW_REV || fw_rev > MAX_FW_REV) {
 		dev_err(dev, "unsupported firmware version %d\n", fw_rev);
 		return -ENODEV;
 	}
 
-	dev_info(dev, "Cerbo GX ADC firware version %d\n", fw_rev);
+	dev_info(dev, "Cerbo GX ADC hw %d, fw %d\n", hw_rev, fw_rev);
 
 	return 0;
 }
