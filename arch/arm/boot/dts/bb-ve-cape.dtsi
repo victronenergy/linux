@@ -22,7 +22,7 @@
 		red {
 			label = "vecape:red:ve1";
 			gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "blink-slow";
+			default-state = "off";
 		};
 	};
 
