@@ -119,6 +119,15 @@ static inline u32 sun6i_spi_get_tx_fifo_count(struct sun6i_spi *sspi)
 	return reg & SUN6I_FIFO_STA_TF_CNT_MASK;
 }
 
+static inline u32 sun6i_spi_get_rx_fifo_count(struct sun6i_spi *sspi)
+{
+	u32 reg = sun6i_spi_read(sspi, SUN6I_FIFO_STA_REG);
+
+	reg >>= SUN6I_FIFO_STA_RF_CNT_BITS;
+
+	return reg & SUN6I_FIFO_STA_RF_CNT_MASK;
+}
+
 static inline void sun6i_spi_enable_interrupt(struct sun6i_spi *sspi, u32 mask)
 {
 	u32 reg = sun6i_spi_read(sspi, SUN6I_INT_CTL_REG);
@@ -137,13 +146,11 @@ static inline void sun6i_spi_disable_interrupt(struct sun6i_spi *sspi, u32 mask)
 
 static inline void sun6i_spi_drain_fifo(struct sun6i_spi *sspi, int len)
 {
-	u32 reg, cnt;
+	u32 cnt;
 	u8 byte;
 
 	/* See how much data is available */
-	reg = sun6i_spi_read(sspi, SUN6I_FIFO_STA_REG);
-	reg &= SUN6I_FIFO_STA_RF_CNT_MASK;
-	cnt = reg >> SUN6I_FIFO_STA_RF_CNT_BITS;
+	cnt = sun6i_spi_get_rx_fifo_count(sspi);
 
 	if (len > cnt)
 		len = cnt;
