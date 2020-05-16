@@ -67,4 +67,8 @@ config LOGO_SUPERH_CLUT224
 	depends on SUPERH
 	default y
 
+config LOGO_VENUS_CLUT224
+	bool "Victron Venus 224-color logo"
+	default n
+
 endif # LOGO
