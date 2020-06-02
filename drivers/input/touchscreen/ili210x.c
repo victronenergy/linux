@@ -75,7 +75,7 @@ static int ili210x_read_reg(struct i2c_client *client,
 	struct i2c_msg msg[] = {
 		{
 			.addr	= client->addr,
-			.flags	= 0,
+			.flags	= I2C_M_STOP,
 			.len	= 1,
 			.buf	= &reg,
 		},
@@ -224,40 +224,12 @@ static const struct ili2xxx_chip ili212x_chip = {
 	.has_calibrate_reg	= true,
 };
 
-static int ili251x_read_reg_common(struct i2c_client *client,
-				   u8 reg, void *buf, size_t len,
-				   unsigned int delay)
-{
-	int error;
-	int ret;
-
-	ret = i2c_master_send(client, &reg, 1);
-	if (ret == 1) {
-		if (delay)
-			usleep_range(delay, delay + 500);
-
-		ret = i2c_master_recv(client, buf, len);
-		if (ret == len)
-			return 0;
-	}
-
-	error = ret < 0 ? ret : -EIO;
-	dev_err(&client->dev, "%s failed: %d\n", __func__, error);
-	return ret;
-}
-
-static int ili251x_read_reg(struct i2c_client *client,
-			    u8 reg, void *buf, size_t len)
-{
-	return ili251x_read_reg_common(client, reg, buf, len, 5000);
-}
-
 static int ili251x_read_touch_data(struct i2c_client *client, u8 *data)
 {
 	int error;
 
-	error = ili251x_read_reg_common(client, REG_TOUCHDATA,
-					data, ILI251X_DATA_SIZE1, 0);
+	error = ili210x_read_reg(client, REG_TOUCHDATA,
+				 data, ILI251X_DATA_SIZE1);
 	if (!error && data[0] == 2) {
 		error = i2c_master_recv(client, data + ILI251X_DATA_SIZE1,
 					ILI251X_DATA_SIZE2);
@@ -292,7 +264,7 @@ static bool ili251x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili251x_chip = {
-	.read_reg		= ili251x_read_reg,
+	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili251x_read_touch_data,
 	.parse_touch_data	= ili251x_touchdata_to_coords,
 	.continue_polling	= ili251x_check_continue_polling,
