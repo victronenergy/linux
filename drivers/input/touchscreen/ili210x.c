@@ -420,9 +420,9 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 		if (error)
 			return error;
 
-		usleep_range(12000, 15000);
+		usleep_range(200, 400);
 		gpiod_set_value_cansleep(reset_gpio, 0);
-		msleep(160);
+		msleep(300);
 	}
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
