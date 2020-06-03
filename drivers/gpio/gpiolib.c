@@ -528,6 +528,7 @@ static int gpiochip_set_names(struct gpio_chip *chip)
 	struct gpio_device *gdev = chip->gpiodev;
 	struct device *dev = &gdev->dev;
 	const char **names;
+	u32 *numbers = NULL;
 	int ret, i;
 	int count;
 
@@ -575,7 +576,29 @@ static int gpiochip_set_names(struct gpio_chip *chip)
 	if (count > chip->ngpio)
 		count = chip->ngpio;
 
+	ret = device_property_count_u32(dev, "gpio-line-numbers");
+
+	if (ret == count) {
+		numbers = kcalloc(count, sizeof(*numbers), GFP_KERNEL);
+		if (!numbers) {
+			kfree(names);
+			return -ENOMEM;
+		}
+
+		device_property_read_u32_array(dev, "gpio-line-numbers",
+					       numbers, count);
+	} else if (ret >= 0) {
+		dev_warn(&gdev->dev, "wrong number of GPIO line numbers\n");
+	}
+
 	for (i = 0; i < count; i++) {
+		u32 j = numbers ? numbers[chip->offset + i] : i;
+
+		if (j >= gdev->ngpio) {
+			dev_warn(&gdev->dev, "invalid GPIO line number\n");
+			continue;
+		}
+
 		/*
 		 * Allow overriding "fixed" names provided by the GPIO
 		 * provider. The "fixed" names are more often than not
@@ -583,10 +606,11 @@ static int gpiochip_set_names(struct gpio_chip *chip)
 		 * device properties.
 		 */
 		if (names[chip->offset + i] && names[chip->offset + i][0])
-			gdev->descs[i].name = names[chip->offset + i];
+			gdev->descs[j].name = names[chip->offset + i];
 	}
 
 	kfree(names);
+	kfree(numbers);
 
 	return 0;
 }
