@@ -31,6 +31,7 @@ void devprop_gpiochip_set_names(struct gpio_chip *chip,
 {
 	struct gpio_device *gdev = chip->gpiodev;
 	const char **names;
+	u32 *numbers = NULL;
 	int ret, i;
 	int count;
 
@@ -54,8 +55,32 @@ void devprop_gpiochip_set_names(struct gpio_chip *chip,
 		return;
 	}
 
-	for (i = 0; i < count; i++)
-		gdev->descs[i].name = names[i];
+	ret = fwnode_property_count_u32(fwnode, "gpio-line-numbers");
+
+	if (ret == count) {
+		numbers = kcalloc(count, sizeof(*numbers), GFP_KERNEL);
+		if (!numbers) {
+			kfree(names);
+			return;
+		}
+
+		fwnode_property_read_u32_array(fwnode, "gpio-line-numbers",
+					       numbers, count);
+	} else if (ret >= 0) {
+		dev_warn(&gdev->dev, "wrong number of GPIO line numbers\n");
+	}
+
+	for (i = 0; i < count; i++) {
+		u32 j = numbers ? numbers[i] : i;
+
+		if (j >= gdev->ngpio) {
+			dev_warn(&gdev->dev, "invalid GPIO line number\n");
+			continue;
+		}
+
+		gdev->descs[j].name = names[i];
+	}
 
 	kfree(names);
+	kfree(numbers);
 }
