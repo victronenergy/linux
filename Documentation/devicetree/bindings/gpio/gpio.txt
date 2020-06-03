@@ -160,12 +160,13 @@ such as pin name are discouraged: such lines have opaque names (since they
 are by definition generic purpose) and such names are usually not very
 helpful. For example "MMC-CD", "Red LED Vdd" and "ethernet reset" are
 reasonable line names as they describe what the line is used for. "GPIO0"
-is not a good name to give to a GPIO line. Placeholders are discouraged:
-rather use the "" (blank string) if the use of the GPIO line is undefined
-in your design. The names are assigned starting from line offset 0 from
-left to right from the passed array. An incomplete array (where the number
-of passed named are less than ngpios) will still be used up until the last
-provided valid line index.
+is not a good name to give to a GPIO line. If a "gpio-line-numbers" property
+exists, it is an array of GPIO line numbers to which the names apply.
+Otherwise, the names are assigned starting from line offset 0 from left to
+right from the passed array. An incomplete array (where the number of passed
+named are less than ngpios) will still be used up until the last provided
+valid line index. Placeholders are discouraged: rather use the "" (blank
+string) if the use of the GPIO line is undefined in your design.
 
 Example:
 
