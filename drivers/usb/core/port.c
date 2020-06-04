@@ -735,6 +735,7 @@ int usb_hub_create_port_device(struct usb_hub *hub, int port1)
 {
 	struct usb_port *port_dev;
 	struct usb_device *hdev = hub->hdev;
+	struct device_node *node;
 	int retval;
 
 	port_dev = kzalloc(sizeof(*port_dev), GFP_KERNEL);
@@ -775,6 +776,16 @@ int usb_hub_create_port_device(struct usb_hub *hub, int port1)
 		dev_err(&port_dev->dev, "failed to sysfs_get_dirent 'state'\n");
 		retval = -ENODEV;
 		goto err_unregister;
+	}
+
+	node = usb_of_get_device_node(hdev, port1);
+	if (node) {
+		if (of_device_is_available(node))
+			port_dev->connect_type =
+				USB_PORT_CONNECT_TYPE_HARD_WIRED;
+		else
+			port_dev->connect_type = USB_PORT_NOT_USED;
+		of_node_put(node);
 	}
 
 	/* Set default policy of port-poweroff disabled. */
