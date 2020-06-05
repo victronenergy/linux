@@ -301,6 +301,11 @@
 				status = "disabled";
 			};
 		};
+
+		port@2 {
+			reg = <2>;
+			status = "disabled";
+		};
 	};
 };
 
