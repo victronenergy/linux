@@ -134,6 +134,20 @@ config DRM_FBDEV_OVERALLOC
 	  is 100. Typical values for double buffering will be 200,
 	  triple buffering 300.
 
+config DRM_FBDEV_MIN_WIDTH
+	int "Minimum width of fbdev buffer"
+	depends on DRM_FBDEV_EMULATION
+	default 0
+	help
+	  Set the minimum width of the allocated fbdev buffer.
+
+config DRM_FBDEV_MIN_HEIGHT
+	int "Minimum height of fbdev buffer"
+	depends on DRM_FBDEV_EMULATION
+	default 0
+	help
+	  Set the minimum height of the allocated fbdev buffer.
+
 config DRM_FBDEV_LEAK_PHYS_SMEM
 	bool "Shamelessly allow leaking of fbdev physical address (DANGEROUS)"
 	depends on DRM_FBDEV_EMULATION && EXPERT
