@@ -57,6 +57,18 @@ MODULE_PARM_DESC(drm_fbdev_overalloc,
 		 "Overallocation of the fbdev buffer (%) [default="
 		 __MODULE_STRING(CONFIG_DRM_FBDEV_OVERALLOC) "]");
 
+static int drm_fbdev_min_width = CONFIG_DRM_FBDEV_MIN_WIDTH;
+module_param(drm_fbdev_min_width, int, 0444);
+MODULE_PARM_DESC(drm_fbdev_min_width,
+		 "Minimum width of the fbdev buffer [default="
+		 __MODULE_STRING(CONFIG_DRM_FBDEV_MIN_WIDTH) "]");
+
+static int drm_fbdev_min_height = CONFIG_DRM_FBDEV_MIN_HEIGHT;
+module_param(drm_fbdev_min_height, int, 0444);
+MODULE_PARM_DESC(drm_fbdev_min_height,
+		 "Minimum height of the fbdev buffer [default="
+		 __MODULE_STRING(CONFIG_DRM_FBDEV_MIN_HEIGHT) "]");
+
 /*
  * In order to keep user-space compatibility, we want in certain use-cases
  * to keep leaking the fbdev physical address to the user-space program
@@ -1477,6 +1489,8 @@ static int __drm_fb_helper_find_sizes(struct drm_fb_helper *fb_helper,
 	const struct drm_format_info *info;
 
 	memset(sizes, 0, sizeof(*sizes));
+	sizes->surface_width = drm_fbdev_min_width;
+	sizes->surface_height = drm_fbdev_min_height;
 	sizes->fb_width = (u32)-1;
 	sizes->fb_height = (u32)-1;
 
