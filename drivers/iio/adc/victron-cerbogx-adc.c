@@ -183,7 +183,7 @@ static int cerbo_adc_probe(struct i2c_client *client,
 
 	iio->dev.parent = &client->dev;
 	iio->dev.of_node = client->dev.of_node;
-	iio->name = id->name;
+	iio->name = client->name;
 	iio->info = &cerbo_adc_info;
 	iio->modes = INDIO_DIRECT_MODE;
 	iio->channels = cerbo_adc_channels;
