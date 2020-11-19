@@ -1606,8 +1606,6 @@ static int flexcan_chip_start(struct net_device *dev)
 
 	priv->can.state = CAN_STATE_ERROR_ACTIVE;
 
-	flexcan_chip_interrupts_enable(dev);
-
 	/* print chip status */
 	netdev_dbg(dev, "%s: reading mcr=0x%08x ctrl=0x%08x\n", __func__,
 		   priv->read(&regs->mcr), priv->read(&regs->ctrl));
@@ -1635,8 +1633,6 @@ static int __flexcan_chip_stop(struct net_device *dev, bool disable_on_error)
 	err = flexcan_chip_disable(priv);
 	if (err && !disable_on_error)
 		goto out_chip_unfreeze;
-
-	flexcan_chip_interrupts_disable(dev);
 
 	priv->can.state = CAN_STATE_STOPPED;
 
@@ -1727,6 +1723,8 @@ static int flexcan_open(struct net_device *dev)
 	if (err)
 		goto out_offload_del;
 
+	flexcan_chip_interrupts_enable(dev);
+
 	can_led_event(dev, CAN_LED_EVENT_OPEN);
 
 	can_rx_offload_enable(&priv->offload);
@@ -1755,6 +1753,7 @@ static int flexcan_close(struct net_device *dev)
 	netif_stop_queue(dev);
 	can_rx_offload_disable(&priv->offload);
 	flexcan_chip_stop_disable_on_error(dev);
+	flexcan_chip_interrupts_disable(dev);
 
 	can_rx_offload_del(&priv->offload);
 	free_irq(dev->irq, dev);
@@ -1777,6 +1776,8 @@ static int flexcan_set_mode(struct net_device *dev, enum can_mode mode)
 		err = flexcan_chip_start(dev);
 		if (err)
 			return err;
+
+		flexcan_chip_interrupts_enable(dev);
 
 		netif_wake_queue(dev);
 		break;
@@ -2120,6 +2121,8 @@ static int __maybe_unused flexcan_suspend(struct device *device)
 			if (err)
 				return err;
 
+			flexcan_chip_interrupts_disable(dev);
+
 			err = pinctrl_pm_select_sleep_state(device);
 			if (err)
 				return err;
@@ -2155,6 +2158,8 @@ static int __maybe_unused flexcan_resume(struct device *device)
 			err = flexcan_chip_start(dev);
 			if (err)
 				return err;
+
+			flexcan_chip_interrupts_enable(dev);
 		}
 	}
 
