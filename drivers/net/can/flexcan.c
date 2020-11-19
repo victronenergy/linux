@@ -1352,6 +1352,31 @@ static void flexcan_ram_init(struct net_device *dev)
 	priv->write(reg_ctrl2, &regs->ctrl2);
 }
 
+static void flexcan_chip_interrupts_enable(const struct net_device *dev)
+{
+	const struct flexcan_priv *priv = netdev_priv(dev);
+	struct flexcan_regs __iomem *regs = priv->regs;
+	u64 reg_imask;
+
+	disable_irq(dev->irq);
+	priv->write(priv->reg_ctrl_default, &regs->ctrl);
+	reg_imask = priv->rx_mask | priv->tx_mask;
+	priv->write(upper_32_bits(reg_imask), &regs->imask2);
+	priv->write(lower_32_bits(reg_imask), &regs->imask1);
+	enable_irq(dev->irq);
+}
+
+static void flexcan_chip_interrupts_disable(const struct net_device *dev)
+{
+	const struct flexcan_priv *priv = netdev_priv(dev);
+	struct flexcan_regs __iomem *regs = priv->regs;
+
+	priv->write(0, &regs->imask2);
+	priv->write(0, &regs->imask1);
+	priv->write(priv->reg_ctrl_default & ~FLEXCAN_CTRL_ERR_ALL,
+		    &regs->ctrl);
+}
+
 /* flexcan_chip_start
  *
  * this functions is entered with clocks enabled
@@ -1362,7 +1387,6 @@ static int flexcan_chip_start(struct net_device *dev)
 	struct flexcan_priv *priv = netdev_priv(dev);
 	struct flexcan_regs __iomem *regs = priv->regs;
 	u32 reg_mcr, reg_ctrl, reg_ctrl2, reg_mecr;
-	u64 reg_imask;
 	int err, i;
 	struct flexcan_mb __iomem *mb;
 
@@ -1582,13 +1606,7 @@ static int flexcan_chip_start(struct net_device *dev)
 
 	priv->can.state = CAN_STATE_ERROR_ACTIVE;
 
-	/* enable interrupts atomically */
-	disable_irq(dev->irq);
-	priv->write(priv->reg_ctrl_default, &regs->ctrl);
-	reg_imask = priv->rx_mask | priv->tx_mask;
-	priv->write(upper_32_bits(reg_imask), &regs->imask2);
-	priv->write(lower_32_bits(reg_imask), &regs->imask1);
-	enable_irq(dev->irq);
+	flexcan_chip_interrupts_enable(dev);
 
 	/* print chip status */
 	netdev_dbg(dev, "%s: reading mcr=0x%08x ctrl=0x%08x\n", __func__,
@@ -1608,7 +1626,6 @@ static int flexcan_chip_start(struct net_device *dev)
 static int __flexcan_chip_stop(struct net_device *dev, bool disable_on_error)
 {
 	struct flexcan_priv *priv = netdev_priv(dev);
-	struct flexcan_regs __iomem *regs = priv->regs;
 	int err;
 
 	/* freeze + disable module */
@@ -1619,11 +1636,7 @@ static int __flexcan_chip_stop(struct net_device *dev, bool disable_on_error)
 	if (err && !disable_on_error)
 		goto out_chip_unfreeze;
 
-	/* Disable all interrupts */
-	priv->write(0, &regs->imask2);
-	priv->write(0, &regs->imask1);
-	priv->write(priv->reg_ctrl_default & ~FLEXCAN_CTRL_ERR_ALL,
-		    &regs->ctrl);
+	flexcan_chip_interrupts_disable(dev);
 
 	priv->can.state = CAN_STATE_STOPPED;
 
