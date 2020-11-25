@@ -337,7 +337,7 @@ static int sun4i_can_start(struct net_device *dev)
 	if (priv->can.ctrlmode & CAN_CTRLMODE_BERR_REPORTING)
 		writel(0xFF, priv->base + SUN4I_REG_INTEN_ADDR);
 	else
-		writel(0xFF & ~SUN4I_INTEN_BERR,
+		writel(0xFF & ~(SUN4I_INTEN_BERR | SUN4I_INT_ARB_LOST),
 		       priv->base + SUN4I_REG_INTEN_ADDR);
 
 	/* enter the selected mode */
