@@ -192,6 +192,12 @@ u8 can_dlc2len(u8 can_dlc);
 /* map the sanitized data length to an appropriate data length code */
 u8 can_len2dlc(u8 len);
 
+/* map the data length to an appropriate data link layer length */
+static inline u8 canfd_sanitize_len(u8 len)
+{
+	return can_dlc2len(can_len2dlc(len));
+}
+
 struct net_device *alloc_candev_mqs(int sizeof_priv, unsigned int echo_skb_max,
 				    unsigned int txqs, unsigned int rxqs);
 #define alloc_candev(sizeof_priv, echo_skb_max) \
