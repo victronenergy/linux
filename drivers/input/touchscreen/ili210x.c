@@ -25,8 +25,6 @@
 #define REG_CALIBRATE		0xcc
 
 struct ili2xxx_chip {
-	int (*read_reg)(struct i2c_client *client, u8 reg,
-			void *buf, size_t len);
 	int (*get_touch_data)(struct i2c_client *client, u8 *data);
 	bool (*parse_touch_data)(const u8 *data, unsigned int finger,
 				 unsigned int *x, unsigned int *y,
@@ -102,7 +100,6 @@ static bool ili210x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili210x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili210x_touchdata_to_coords,
 	.continue_polling	= ili210x_check_continue_polling,
@@ -163,7 +160,6 @@ static bool ili211x_decline_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili211x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili211x_read_touch_data,
 	.parse_touch_data	= ili211x_touchdata_to_coords,
 	.continue_polling	= ili211x_decline_polling,
@@ -194,7 +190,6 @@ static bool ili212x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili212x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili212x_touchdata_to_coords,
 	.continue_polling	= ili212x_check_continue_polling,
@@ -262,7 +257,6 @@ static bool ili251x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili251x_chip = {
-	.read_reg		= ili251x_read_reg,
 	.get_touch_data		= ili251x_read_touch_data,
 	.parse_touch_data	= ili251x_touchdata_to_coords,
 	.continue_polling	= ili251x_check_continue_polling,
