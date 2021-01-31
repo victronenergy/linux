@@ -42,8 +42,6 @@
 #define ILI251X_FW_FILENAME	"ilitek/ili251x.bin"
 
 struct ili2xxx_chip {
-	int (*read_reg)(struct i2c_client *client, u8 reg,
-			void *buf, size_t len);
 	int (*get_touch_data)(struct i2c_client *client, u8 *data);
 	bool (*parse_touch_data)(const u8 *data, unsigned int finger,
 				 unsigned int *x, unsigned int *y,
@@ -126,7 +124,6 @@ static bool ili210x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili210x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili210x_touchdata_to_coords,
 	.continue_polling	= ili210x_check_continue_polling,
@@ -187,7 +184,6 @@ static bool ili211x_decline_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili211x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili211x_read_touch_data,
 	.parse_touch_data	= ili211x_touchdata_to_coords,
 	.continue_polling	= ili211x_decline_polling,
@@ -218,7 +214,6 @@ static bool ili212x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili212x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili212x_touchdata_to_coords,
 	.continue_polling	= ili212x_check_continue_polling,
@@ -266,7 +261,6 @@ static bool ili251x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili251x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili251x_read_touch_data,
 	.parse_touch_data	= ili251x_touchdata_to_coords,
 	.continue_polling	= ili251x_check_continue_polling,
@@ -371,7 +365,7 @@ static int ili251x_firmware_update_resolution(struct device *dev)
 	int error;
 
 	/* The firmware update blob might have changed the resolution. */
-	error = priv->chip->read_reg(client, REG_PANEL_INFO, &rs, sizeof(rs));
+	error = ili210x_read_reg(client, REG_PANEL_INFO, &rs, sizeof(rs));
 	if (!error) {
 		resx = le16_to_cpup((__le16 *)rs);
 		resy = le16_to_cpup((__le16 *)(rs + 2));
@@ -409,8 +403,7 @@ static ssize_t ili251x_firmware_update_firmware_version(struct device *dev)
 	u8 fw[8];
 
 	/* Get firmware version */
-	error = priv->chip->read_reg(client, REG_FIRMWARE_VERSION,
-				     &fw, sizeof(fw));
+	error = ili210x_read_reg(client, REG_FIRMWARE_VERSION, &fw, sizeof(fw));
 	if (!error)
 		memcpy(priv->version_firmware, fw, sizeof(fw));
 
@@ -425,8 +418,7 @@ static ssize_t ili251x_firmware_update_kernel_version(struct device *dev)
 	u8 kv[5];
 
 	/* Get kernel version */
-	error = priv->chip->read_reg(client, REG_KERNEL_VERSION,
-				     &kv, sizeof(kv));
+	error = ili210x_read_reg(client, REG_KERNEL_VERSION, &kv, sizeof(kv));
 	if (!error)
 		memcpy(priv->version_kernel, kv, sizeof(kv));
 
@@ -441,8 +433,7 @@ static ssize_t ili251x_firmware_update_protocol_version(struct device *dev)
 	u8 pv[2];
 
 	/* Get protocol version */
-	error = priv->chip->read_reg(client, REG_PROTOCOL_VERSION,
-				     &pv, sizeof(pv));
+	error = ili210x_read_reg(client, REG_PROTOCOL_VERSION, &pv, sizeof(pv));
 	if (!error)
 		memcpy(priv->version_proto, pv, sizeof(pv));
 
@@ -457,7 +448,7 @@ static ssize_t ili251x_firmware_update_ic_mode(struct device *dev)
 	u8 md[2];
 
 	/* Get chip boot mode */
-	error = priv->chip->read_reg(client, REG_GET_MODE, &md, sizeof(md));
+	error = ili210x_read_reg(client, REG_GET_MODE, &md, sizeof(md));
 	if (!error)
 		memcpy(priv->ic_mode, md, sizeof(md));
 
@@ -628,12 +619,11 @@ static const u8 *ili251x_firmware_to_buffer(const struct firmware *fw,
 /* Switch mode between Application and BootLoader */
 static int ili251x_switch_ic_mode(struct i2c_client *client, u8 cmd_mode)
 {
-	struct ili210x *priv = i2c_get_clientdata(client);
 	u8 cmd_wren[3] = { REG_WRITE_ENABLE, 0x5a, 0xa5 };
 	u8 md[2];
 	int error;
 
-	error = priv->chip->read_reg(client, REG_GET_MODE, md, sizeof(md));
+	error = ili210x_read_reg(client, REG_GET_MODE, md, sizeof(md));
 	if (error)
 		return error;
 	/* Mode already set */
@@ -656,7 +646,7 @@ static int ili251x_switch_ic_mode(struct i2c_client *client, u8 cmd_mode)
 	mdelay(200);	/* Reboot into bootloader takes a lot of time ... */
 
 	/* Read back mode */
-	error = priv->chip->read_reg(client, REG_GET_MODE, md, sizeof(md));
+	error = ili210x_read_reg(client, REG_GET_MODE, md, sizeof(md));
 	if (error)
 		return error;
 	/* Check if mode is correct now. */
@@ -669,13 +659,12 @@ static int ili251x_switch_ic_mode(struct i2c_client *client, u8 cmd_mode)
 
 static int ili251x_firmware_busy(struct i2c_client *client)
 {
-	struct ili210x *priv = i2c_get_clientdata(client);
 	int error, i = 0;
 	u8 data;
 
 	do {
 		/* The read_reg already contains suitable delay */
-		error = priv->chip->read_reg(client, REG_IC_BUSY, &data, 1);
+		error = ili210x_read_reg(client, REG_IC_BUSY, &data, 1);
 		if (error)
 			return error;
 		if (i++ == 100000)
@@ -689,7 +678,6 @@ static int ili251x_firmware_write_to_ic(struct device *dev, const u8 *fwbuf,
 					u16 start, u16 end, u8 dataflash)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	struct ili210x *priv = i2c_get_clientdata(client);
 	u8 cmd_crc = REG_READ_DATA_CRC;
 	u8 crcrb[4] = { 0 };
 	u8 fw_data[33];
@@ -737,8 +725,8 @@ static int ili251x_firmware_write_to_ic(struct device *dev, const u8 *fwbuf,
 	if (error)
 		return error;
 
-	error = priv->chip->read_reg(client, REG_READ_DATA_CRC,
-				   &crcrb, sizeof(crcrb));
+	error = ili210x_read_reg(client, REG_READ_DATA_CRC,
+				 &crcrb, sizeof(crcrb));
 	if (error)
 		return error;
 
