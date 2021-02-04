@@ -56,6 +56,11 @@ config SERIAL_8250_DEVNAME
 	depends on SERIAL_8250
 	default "S"
 
+config SERIAL_8250_ISA
+	bool "8250/16550 ISA device support" if EXPERT
+	depends on SERIAL_8250
+	default y
+
 config SERIAL_8250_PNP
 	bool "8250/16550 PNP device support" if EXPERT
 	depends on SERIAL_8250 && PNP
