@@ -325,6 +325,7 @@ static int __init serial8250_init(void)
 	if (ret)
 		goto unreg_uart_drv;
 
+#ifdef CONFIG_SERIAL_8250_ISA
 	serial8250_isa_devs = platform_device_alloc("serial8250", PLAT8250_DEV_LEGACY);
 	if (!serial8250_isa_devs) {
 		ret = -ENOMEM;
@@ -336,15 +337,18 @@ static int __init serial8250_init(void)
 		goto put_dev;
 
 	serial8250_register_ports(&serial8250_reg, &serial8250_isa_devs->dev);
+#endif
 
 	ret = platform_driver_register(&serial8250_isa_driver);
 	if (ret == 0)
 		goto out;
 
+#ifdef CONFIG_SERIAL_8250_ISA
 	platform_device_del(serial8250_isa_devs);
 put_dev:
 	platform_device_put(serial8250_isa_devs);
 unreg_pnp:
+#endif
 	serial8250_pnp_exit();
 unreg_uart_drv:
 #ifdef CONFIG_SPARC
