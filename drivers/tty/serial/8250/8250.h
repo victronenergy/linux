@@ -251,6 +251,20 @@ static inline int serial8250_in_MCR(struct uart_8250_port *up)
 #define ALPHA_KLUDGE_MCR 0
 #endif
 
+#ifdef CONFIG_SERIAL_8250_ISA
+void serial8250_isa_init_ports(unsigned int nr_uarts);
+int serial8250_isa_init(unsigned int nr_uarts);
+void serial8250_isa_exit(void);
+void serial8250_isa_unregister_port(struct uart_8250_port *uart);
+void serial8250_isa_fixup(int n, struct uart_8250_port *uart);
+#else
+static inline void serial8250_isa_init_ports(unsigned int nr_uarts) { }
+static inline int serial8250_isa_init(unsigned int nr_uarts) { return 0; }
+static inline void serial8250_isa_exit(void) { }
+static inline void serial8250_isa_unregister_port(struct uart_8250_port *uart) { }
+static inline void serial8250_isa_fixup(int n, struct uart_8250_port *uart) { }
+#endif
+
 #ifdef CONFIG_SERIAL_8250_PNP
 int serial8250_pnp_init(void);
 void serial8250_pnp_exit(void);
