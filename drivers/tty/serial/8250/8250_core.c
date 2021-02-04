@@ -494,9 +494,10 @@ static void univ8250_rsa_support(struct uart_ops *ops)
 #define univ8250_rsa_support(x)		do { } while (0)
 #endif /* CONFIG_SERIAL_8250_RSA */
 
-static inline void serial8250_apply_quirks(struct uart_8250_port *up)
+int serial8250_add_one_port(struct uart_8250_port *up)
 {
 	up->port.quirks |= skip_txen_test ? UPQ_NO_TXEN_TEST : 0;
+	return uart_add_one_port(&serial8250_reg, &up->port);
 }
 
 static void __init serial8250_isa_init_ports(void)
@@ -563,7 +564,7 @@ static void __init serial8250_isa_init_ports(void)
 }
 
 static void __init
-serial8250_register_ports(struct uart_driver *drv, struct device *dev)
+serial8250_register_ports(struct device *dev)
 {
 	int i;
 
@@ -581,8 +582,7 @@ serial8250_register_ports(struct uart_driver *drv, struct device *dev)
 		if (uart_console_enabled(&up->port))
 			pm_runtime_get_sync(up->port.dev);
 
-		serial8250_apply_quirks(up);
-		uart_add_one_port(drv, &up->port);
+		serial8250_add_one_port(up);
 	}
 }
 
@@ -1100,9 +1100,7 @@ int serial8250_register_8250_port(struct uart_8250_port *up)
 				serial8250_isa_config(0, &uart->port,
 						&uart->capabilities);
 
-			serial8250_apply_quirks(uart);
-			ret = uart_add_one_port(&serial8250_reg,
-						&uart->port);
+			ret = serial8250_add_one_port(uart);
 			if (ret)
 				goto err;
 
@@ -1167,8 +1165,7 @@ void serial8250_unregister_port(int line)
 		uart->port.dev = &serial8250_isa_devs->dev;
 		uart->capabilities = 0;
 		serial8250_init_port(uart);
-		serial8250_apply_quirks(uart);
-		uart_add_one_port(&serial8250_reg, &uart->port);
+		serial8250_add_one_port(uart);
 	} else {
 		uart->port.dev = NULL;
 	}
@@ -1212,7 +1209,7 @@ static int __init serial8250_init(void)
 	if (ret)
 		goto put_dev;
 
-	serial8250_register_ports(&serial8250_reg, &serial8250_isa_devs->dev);
+	serial8250_register_ports(&serial8250_isa_devs->dev);
 
 	ret = platform_driver_register(&serial8250_isa_driver);
 	if (ret == 0)
