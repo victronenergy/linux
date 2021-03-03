@@ -107,6 +107,7 @@ struct serial8250_config {
 
 #define SERIAL8250_PORT(_base, _irq) SERIAL8250_PORT_FLAGS(_base, _irq, 0)
 
+#define SERIAL8250_DEVNAME "tty" CONFIG_SERIAL_8250_DEVNAME
 
 static inline int serial_in(struct uart_8250_port *up, int offset)
 {

@@ -125,7 +125,8 @@ static int serial_8250_men_mcb_probe(struct mcb_device *mdev,
 			dev_err(&mdev->dev, "unable to register UART port\n");
 			return data[i].line;
 		}
-		dev_info(&mdev->dev, "found MCB UART: ttyS%d\n", data[i].line);
+		dev_info(&mdev->dev, "found MCB UART: %s%d\n",
+			 SERIAL8250_DEVNAME, data[i].line);
 	}
 
 	return 0;

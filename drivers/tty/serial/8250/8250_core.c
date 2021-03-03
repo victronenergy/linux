@@ -594,7 +594,7 @@ static int univ8250_console_match(struct console *co, char *name, int idx,
 }
 
 static struct console univ8250_console = {
-	.name		= "ttyS",
+	.name		= SERIAL8250_DEVNAME,
 	.write		= univ8250_console_write,
 	.device		= uart_console_device,
 	.setup		= univ8250_console_setup,
@@ -624,7 +624,7 @@ console_initcall(univ8250_console_init);
 static struct uart_driver serial8250_reg = {
 	.owner			= THIS_MODULE,
 	.driver_name		= "serial",
-	.dev_name		= "ttyS",
+	.dev_name		= SERIAL8250_DEVNAME,
 	.major			= TTY_MAJOR,
 	.minor			= 64,
 	.cons			= SERIAL8250_CONSOLE,
