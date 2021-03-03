@@ -1819,7 +1819,7 @@ static int __init omap8250_console_fixup(void)
 	char *options;
 	u8 idx;
 
-	if (strstr(boot_command_line, "console=ttyS"))
+	if (strstr(boot_command_line, "console=" SERIAL8250_DEVNAME))
 		/* user set a ttyS based name for the console */
 		return 0;
 
@@ -1842,9 +1842,9 @@ static int __init omap8250_console_fixup(void)
 		options = NULL;
 	}
 
-	add_preferred_console("ttyS", idx, options);
-	pr_err("WARNING: Your 'console=ttyO%d' has been replaced by 'ttyS%d'\n",
-	       idx, idx);
+	add_preferred_console(SERIAL8250_DEVNAME, idx, options);
+	pr_err("WARNING: Your 'console=ttyO%d' has been replaced by '%s%d'\n",
+	       idx, SERIAL8250_DEVNAME, idx);
 	pr_err("This ensures that you still see kernel messages. Please\n");
 	pr_err("update your kernel commandline.\n");
 	return 0;

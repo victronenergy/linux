@@ -51,6 +51,11 @@ config SERIAL_8250_DEPRECATED_OPTIONS
 	  If you did not notice yet and/or you have userspace from pre-3.7, it
 	  is safe (and recommended) to say N here.
 
+config SERIAL_8250_DEVNAME
+	string "Device name suffix" if EXPERT
+	depends on SERIAL_8250
+	default "S"
+
 config SERIAL_8250_PNP
 	bool "8250/16550 PNP device support" if EXPERT
 	depends on SERIAL_8250 && PNP
