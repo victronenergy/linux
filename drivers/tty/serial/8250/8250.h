@@ -107,6 +107,8 @@ extern unsigned int nr_uarts;
 extern unsigned int share_irqs;
 extern unsigned int skip_txen_test;
 
+#define SERIAL8250_DEVNAME "tty" CONFIG_SERIAL_8250_DEVNAME
+
 #define SERIAL8250_PORT_FLAGS(_base, _irq, _flags)		\
 	{							\
 		.iobase		= _base,			\
