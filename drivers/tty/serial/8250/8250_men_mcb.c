@@ -229,7 +229,8 @@ static int serial_8250_men_mcb_probe(struct mcb_device *mdev,
 		}
 
 		data->line[i] = res;
-		dev_info(&mdev->dev, "found MCB UART: ttyS%d\n", data->line[i]);
+		dev_info(&mdev->dev, "found MCB UART: %s%d\n",
+			 SERIAL8250_DEVNAME, data->line[i]);
 	}
 
 	return 0;
