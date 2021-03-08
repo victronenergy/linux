@@ -499,11 +499,12 @@ int serial8250_add_one_port(struct uart_8250_port *up)
 	return uart_add_one_port(&serial8250_reg, &up->port);
 }
 
+static void __init serial8250_isa_init_ports(unsigned int nr_uarts);
+
 static void __init serial8250_init_ports(void)
 {
-	struct uart_8250_port *up;
 	static int first = 1;
-	int i, irqflag = 0;
+	int i;
 
 	if (!first)
 		return;
@@ -537,6 +538,15 @@ static void __init serial8250_init_ports(void)
 	/* chain base port ops to support Remote Supervisor Adapter */
 	univ8250_port_ops = *base_ops;
 	univ8250_rsa_support(&univ8250_port_ops);
+
+	serial8250_isa_init_ports(nr_uarts);
+}
+
+static void __init serial8250_isa_init_ports(unsigned int nr_uarts)
+{
+	struct uart_8250_port *up;
+	int irqflag = 0;
+	int i;
 
 	if (share_irqs)
 		irqflag = IRQF_SHARED;
@@ -1128,6 +1138,18 @@ err:
 }
 EXPORT_SYMBOL(serial8250_register_8250_port);
 
+static void serial8250_isa_unregister_port(struct uart_8250_port *uart)
+{
+	if (!serial8250_isa_devs)
+		return;
+
+	uart->port.flags &= ~UPF_BOOT_AUTOCONF;
+	uart->port.type = PORT_UNKNOWN;
+	uart->port.dev = &serial8250_isa_devs->dev;
+	uart->capabilities = 0;
+	serial8250_add_one_port(uart);
+}
+
 /**
  *	serial8250_unregister_port - remove a 16x50 serial port at runtime
  *	@line: serial line number
@@ -1150,18 +1172,38 @@ void serial8250_unregister_port(int line)
 	}
 
 	uart_remove_one_port(&serial8250_reg, &uart->port);
-	if (serial8250_isa_devs) {
-		uart->port.flags &= ~UPF_BOOT_AUTOCONF;
-		uart->port.type = PORT_UNKNOWN;
-		uart->port.dev = &serial8250_isa_devs->dev;
-		uart->capabilities = 0;
-		serial8250_add_one_port(uart);
-	} else {
-		uart->port.dev = NULL;
-	}
+	uart->port.dev = NULL;
+	serial8250_isa_unregister_port(uart);
+
 	mutex_unlock(&serial_mutex);
 }
 EXPORT_SYMBOL(serial8250_unregister_port);
+
+static int __init serial8250_isa_init(unsigned int nr_uarts)
+{
+	int ret;
+
+	serial8250_isa_devs = platform_device_alloc("serial8250",
+						    PLAT8250_DEV_LEGACY);
+	if (!serial8250_isa_devs)
+		return -ENOMEM;
+
+	ret = platform_device_add(serial8250_isa_devs);
+	if (ret)
+		goto put_dev;
+
+	serial8250_register_ports(&serial8250_isa_devs->dev);
+
+	ret = platform_driver_register(&serial8250_isa_driver);
+	if (ret == 0)
+		goto out;
+
+	platform_device_del(serial8250_isa_devs);
+put_dev:
+	platform_device_put(serial8250_isa_devs);
+out:
+	return ret;
+}
 
 static int __init serial8250_init(void)
 {
@@ -1188,27 +1230,10 @@ static int __init serial8250_init(void)
 	if (ret)
 		goto unreg_uart_drv;
 
-	serial8250_isa_devs = platform_device_alloc("serial8250",
-						    PLAT8250_DEV_LEGACY);
-	if (!serial8250_isa_devs) {
-		ret = -ENOMEM;
-		goto unreg_pnp;
-	}
-
-	ret = platform_device_add(serial8250_isa_devs);
-	if (ret)
-		goto put_dev;
-
-	serial8250_register_ports(&serial8250_isa_devs->dev);
-
-	ret = platform_driver_register(&serial8250_isa_driver);
+	ret = serial8250_isa_init(nr_uarts);
 	if (ret == 0)
 		goto out;
 
-	platform_device_del(serial8250_isa_devs);
-put_dev:
-	platform_device_put(serial8250_isa_devs);
-unreg_pnp:
 	serial8250_pnp_exit();
 unreg_uart_drv:
 #ifdef CONFIG_SPARC
@@ -1220,7 +1245,7 @@ out:
 	return ret;
 }
 
-static void __exit serial8250_exit(void)
+static void __exit serial8250_isa_exit(void)
 {
 	struct platform_device *isa_dev = serial8250_isa_devs;
 
@@ -1233,7 +1258,11 @@ static void __exit serial8250_exit(void)
 
 	platform_driver_unregister(&serial8250_isa_driver);
 	platform_device_unregister(isa_dev);
+}
 
+static void __exit serial8250_exit(void)
+{
+	serial8250_isa_exit();
 	serial8250_pnp_exit();
 
 #ifdef CONFIG_SPARC
