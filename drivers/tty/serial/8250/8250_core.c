@@ -493,7 +493,7 @@ int serial8250_add_one_port(struct uart_8250_port *up)
 	return uart_add_one_port(&serial8250_reg, &up->port);
 }
 
-static void __init serial8250_isa_init_ports(void)
+static void __init serial8250_init_ports(void)
 {
 	struct uart_8250_port *up;
 	static int first = 1;
@@ -686,7 +686,7 @@ static int __init univ8250_console_init(void)
 	if (nr_uarts == 0)
 		return -ENODEV;
 
-	serial8250_isa_init_ports();
+	serial8250_init_ports();
 	register_console(&univ8250_console);
 	return 0;
 }
@@ -719,7 +719,7 @@ int __init early_serial_setup(struct uart_port *port)
 	if (port->line >= ARRAY_SIZE(serial8250_ports) || nr_uarts == 0)
 		return -ENODEV;
 
-	serial8250_isa_init_ports();
+	serial8250_init_ports();
 	p = &serial8250_ports[port->line].port;
 	p->iobase       = port->iobase;
 	p->membase      = port->membase;
@@ -1167,7 +1167,7 @@ static int __init serial8250_init(void)
 	if (nr_uarts == 0)
 		return -ENODEV;
 
-	serial8250_isa_init_ports();
+	serial8250_init_ports();
 
 	pr_info("Serial: 8250/16550 driver, %d ports, IRQ sharing %sabled\n",
 		nr_uarts, share_irqs ? "en" : "dis");
