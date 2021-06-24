@@ -248,6 +248,12 @@ config VENUS_MODULES
 	select RTL8187
 	select RTL_CARDS
 	select RTL8192CU
+	select WLAN_VENDOR_MEDIATEK
+	select MT7601U
+	select MT76x0U
+	select MT76x2U
+	select MT7663U
+	select MT7663S
 
 	# ppp
 	select PPP
