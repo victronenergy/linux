@@ -150,6 +150,17 @@
 		enable-active-high;
 		gpio = <&pio 8 3 GPIO_ACTIVE_HIGH>; /* PI3 */
 	};
+
+	reg_hdmi_vcc: hdmi-vcc {
+		compatible = "regulator-fixed";
+		regulator-name = "hdmi-vcc";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&reg_usb0_vbus>;
+		startup-delay-us = <1500000>;
+		enable-active-high;
+		gpio = <&pio 1 13 GPIO_ACTIVE_HIGH>; /* PB13 */
+	};
 };
 
 &de {
@@ -235,6 +246,7 @@
 	touchscreen@38 {
 		compatible = "edt,edt-ft5316", "edt,edt-ft5306";
 		reg = <0x38>;
+		vcc-supply = <&reg_hdmi_vcc>;
 		interrupt-parent = <&pio>;
 		interrupts = <8 11 IRQ_TYPE_EDGE_FALLING>;
 	};
@@ -242,6 +254,7 @@
 	eeprom@50 {
 		compatible = "atmel,24c02";
 		reg = <0x50>;
+		vcc-supply = <&reg_hdmi_vcc>;
 		pagesize = <16>;
 		read-only;
 	};
@@ -249,6 +262,7 @@
 	backlight@51 {
 		compatible = "victronenergy,gxdisp-backlight";
 		reg = <0x51>;
+		vcc-supply = <&reg_hdmi_vcc>;
 		default-on;
 		default-brightness = <15>;
 	};
