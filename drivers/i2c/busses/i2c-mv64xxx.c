@@ -1042,6 +1042,7 @@ mv64xxx_i2c_probe(struct platform_device *pd)
 
 	drv_data->adapter.dev.parent = &pd->dev;
 	drv_data->adapter.algo = &mv64xxx_i2c_algo;
+	drv_data->adapter.retries = 5;
 	drv_data->adapter.owner = THIS_MODULE;
 	drv_data->adapter.class = I2C_CLASS_DEPRECATED;
 	drv_data->adapter.nr = pd->id;
