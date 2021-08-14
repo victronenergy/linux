@@ -225,6 +225,11 @@
 };
 
 &i2c2 {
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&i2c2_pins>;
+	pinctrl-1 = <&i2c2_gpio_pins>;
+	scl-gpios = <&pio 1 20 GPIO_ACTIVE_HIGH>; /* PB20 */
+	sda-gpios = <&pio 1 21 GPIO_ACTIVE_HIGH>; /* PB21 */
 	status = "okay";
 
 	touchscreen@38 {
@@ -385,5 +390,10 @@
 		       "PH22", "PH23", "PH24", "PH25",
 		       "PH26";
 		function = "emac";
+	};
+
+	i2c2_gpio_pins: i2c2-gpio-pins {
+		pins = "PB20", "PB21";
+		function = "gpio_out";
 	};
 };
