@@ -1,0 +1,368 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2021 Mans Rullgard <mans@mansr.com>
+ */
+
+/dts-v1/;
+
+#include "sun8i-h3-sinh3-core.dtsi"
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Ekrano GX";
+	compatible = "victronenergy,ekrano-gx",
+		     "sinlinx,sinh3-core",
+		     "allwinner,sun8i-h3";
+
+	aliases {
+		ethernet0 = &emac;
+		hwmon0 = &cpu_thermal;
+		hwmon1 = &temp_front;
+		hwmon2 = &temp_back;
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		mmc0 = &mmc0;
+		mmc1 = &mmc2;
+		nvmem0 = &board_id;
+		nvmem1 = &edid;
+		rtc0 = &ext_rtc;
+		rtc1 = &rtc;
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+		serial3 = &r_uart;
+		usb-serial0 = &usb_serial0;
+		watchdog0 = &ext_wdt;
+		watchdog1 = &wdt0;
+	};
+
+	hdmi-connector {
+		compatible = "hdmi-connector";
+		type = "a";
+		ddc-i2c-bus = <&i2c1>;
+
+		port {
+			hdmi_con_in: endpoint {
+				remote-endpoint = <&hdmi_out_con>;
+			};
+		};
+	};
+
+	button {
+		compatible = "gpio-keys";
+
+		button {
+			linux,code = <KEY_PAUSE>;
+			gpios = <&pio 0 10 GPIO_ACTIVE_LOW>; /* PA10 */
+		};
+	};
+
+	buzzer {
+		compatible = "pwm-beeper";
+		pwms = <&r_pwm 0 1000000 0>;
+	};
+
+	ext_wdt: watchdog {
+		compatible = "linux,wdt-gpio";
+		gpios = <&pio 3 10 GPIO_ACTIVE_HIGH>; /* PD10 */
+		hw_algo = "toggle";
+		hw_margin_ms = <30000>;
+		always-running;
+	};
+
+	can_clk: can-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <40000000>;
+	};
+
+	reg_usb0_vbus: usb0-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb0-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&pio 4 3 GPIO_ACTIVE_HIGH>; /* PE3 */
+	};
+
+	reg_usb1_vbus: usb1-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb1-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&pio 4 8 GPIO_ACTIVE_HIGH>; /* PE8 */
+	};
+
+	reg_usb2_vbus: usb2-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "usb2-vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&pio 4 15 GPIO_ACTIVE_HIGH>; /* PE15 */
+	};
+};
+
+&de {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_out {
+	hdmi_out_con: endpoint {
+		remote-endpoint = <&hdmi_con_in>;
+	};
+};
+
+&emac {
+	phy-handle = <&int_mii_phy>;
+	phy-mode = "mii";
+	status = "okay";
+};
+
+&mmc0 {
+	vmmc-supply = <&reg_vcc_io>;
+	bus-width = <4>;
+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>; /* PF6 */
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+
+	adc@48 {
+		compatible = "ti,tla2024";
+		reg = <0x48>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@4 {
+			reg = <4>;
+		};
+
+		channel@5 {
+			reg = <5>;
+		};
+
+		channel@6 {
+			reg = <6>;
+		};
+	};
+
+	adc@49 {
+		compatible = "ti,tla2024";
+		reg = <0x49>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@4 {
+			reg = <4>;
+		};
+
+		channel@6 {
+			reg = <6>;
+		};
+
+		channel@7 {
+			reg = <7>;
+		};
+	};
+
+	temp_front: sensor@4c {
+		compatible = "national,lm75b";
+		reg = <0x4c>;
+		vs-supply = <&reg_vdd_3v3>;
+	};
+
+	temp_back: sensor@4d {
+		compatible = "national,lm75b";
+		reg = <0x4d>;
+		vs-supply = <&reg_vdd_3v3>;
+	};
+
+	board_id: eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+		read-only;
+		vcc-supply = <&reg_vdd_3v3>;
+	};
+
+	ext_rtc: rtc@68 {
+		compatible = "nxp,pcf8523";
+		status = "okay";
+		reg = <0x68>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+
+	touchscreen@38 {
+		compatible = "edt,edt-ft5446", "edt,edt-ft5406";
+		reg = <0x38>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 2 IRQ_TYPE_EDGE_FALLING>;
+		vcc-supply = <&reg_vdd_3v3>;
+		iovcc-supply = <&reg_vdd_3v3>;
+	};
+
+	edid: eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <16>;
+		read-only;
+		vcc-supply = <&reg_vdd_3v3>;
+	};
+
+	backlight@51 {
+		compatible = "victronenergy,gxdisp-backlight";
+		reg = <0x51>;
+		default-on;
+		default-brightness = <15>;
+		vcc-supply = <&reg_vdd_3v3>;
+	};
+};
+
+&r_pwm {
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+
+	assigned-clocks = <&ccu CLK_SPI0>;
+	assigned-clock-rates = <600000000>;
+	cs-gpios = <&pio 2 3 GPIO_ACTIVE_LOW>;
+
+	can0: can@0 {
+		compatible = "microchip,mcp2518fd";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		clocks = <&can_clk>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 20 IRQ_TYPE_LEVEL_LOW>; /* PA20 */
+		microchip,rx-int-gpios = <&pio 0 21 GPIO_ACTIVE_LOW>; /* PA21 */
+	};
+};
+
+&spi0_pins {
+	pins = "PC0", "PC1", "PC2";
+};
+
+&spi1 {
+	status = "okay";
+
+	assigned-clocks = <&ccu CLK_SPI1>;
+	assigned-clock-rates = <600000000>;
+	cs-gpios = <&pio 0 13 GPIO_ACTIVE_LOW>;
+
+	can1: can@0 {
+		compatible = "microchip,mcp2518fd";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		clocks = <&can_clk>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 8 IRQ_TYPE_LEVEL_LOW>; /* PA8 */
+		microchip,rx-int-gpios = <&pio 0 3 GPIO_ACTIVE_LOW>; /* PA3 */
+	};
+};
+
+&spi1_pins {
+	pins = "PA15", "PA16", "PA14";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pa_pins>;
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
+	status = "okay";
+};
+
+&r_uart {
+	status = "okay";
+};
+
+&ohci0 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	usb_serial0: usb-serial@1 {
+		compatible = "usb403,6015";
+		reg = <1>;
+	};
+};
+
+&ehci1 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	wireless-controller@1 {
+		compatible = "usbbda,d723";
+		reg = <1>;
+	};
+};
+
+&ehci2 {
+	status = "okay";
+};
+
+&ohci2 {
+	status = "okay";
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+&usbphy {
+	usb0_vbus-supply = <&reg_usb0_vbus>;
+	usb1_vbus-supply = <&reg_usb1_vbus>;
+	usb2_vbus-supply = <&reg_usb2_vbus>;
+	usb3_vbus-supply = <&reg_usb2_vbus>;
+	status = "okay";
+};
+
+&pio {
+	gpio-line-names =
+		"relay_1",
+		"relay_2",
+		"digital_input_1",
+		"digital_input_2",
+		"digital_output_1",
+		"digital_output_2",
+		"mkx_rst",
+		"vebus_standby";
+	gpio-line-numbers =
+		<110>,		/* PD14 */
+		<107>,		/* PD11 */
+		<197>,		/* PG5 */
+		<196>,		/* PG4 */
+		<113>,		/* PD17 */
+		<112>,		/* PD16 */
+		<111>,		/* PD15 */
+		<109>;		/* PD13 */
+};
