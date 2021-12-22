@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright (C) 2021 Mans Rullgard <mans@mansr.com>
+ */
+
+/dts-v1/;
+#include "sun8i-h3.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	reg_vdd_5v: regulator-vdd-5v {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-5v";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+
+	reg_vdd_3v3: regulator-vdd-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&reg_vdd_5v>;
+	};
+
+	reg_vcc_io: regulator-vcc-io {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-io";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		gpio = <&r_pio 0 5 GPIO_ACTIVE_LOW>; /* PL5 */
+		vin-supply = <&reg_vdd_3v3>;
+	};
+
+	reg_vdd_dram: regulator-vdd-dram {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-dram";
+		regulator-min-microvolt = <1500000>;
+		regulator-max-microvolt = <1500000>;
+		regulator-boot-on;
+		regulator-always-on;
+		gpio = <&r_pio 0 9 GPIO_ACTIVE_HIGH>; /* PL9 */
+		enable-active-high;
+		vin-supply = <&reg_vdd_5v>;
+	};
+
+	reg_vdd_cpux: regulator-cpux {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd-cpux";
+		regulator-min-microvolt = <1300000>;
+		regulator-max-microvolt = <1300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>; /* PL8 */
+		enable-active-high;
+		vin-supply = <&reg_vdd_5v>;
+	};
+};
+
+&cpu0 {
+	cpu-supply = <&reg_vdd_cpux>;
+};
+
+&hdmi {
+	hvcc-supply = <&reg_vcc_io>;
+};
+
+&mmc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc2_8bit_pins>;
+	vmmc-supply = <&reg_vcc_io>;
+	bus-width = <8>;
+	non-removable;
+	status = "okay";
+};
+
+&pio {
+	vcc-pa-supply = <&reg_vcc_io>;
+	vcc-pc-supply = <&reg_vcc_io>;
+	vcc-pd-supply = <&reg_vcc_io>;
+	vcc-pe-supply = <&reg_vcc_io>;
+	vcc-pf-supply = <&reg_vcc_io>;
+	vcc-pg-supply = <&reg_vcc_io>;
+};
+
+&r_pio {
+	vcc-pl-supply = <&reg_vdd_3v3>;
+};
