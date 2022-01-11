@@ -262,7 +262,7 @@ static bool drm_kms_helper_enable_hpd(struct drm_device *dev)
 	return poll;
 }
 
-#define DRM_OUTPUT_POLL_PERIOD (10*HZ)
+#define DRM_OUTPUT_POLL_PERIOD (1*HZ)
 static void reschedule_output_poll_work(struct drm_device *dev)
 {
 	unsigned long delay = DRM_OUTPUT_POLL_PERIOD;
