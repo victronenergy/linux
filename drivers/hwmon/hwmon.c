@@ -19,6 +19,7 @@
 #include <linux/kstrtox.h>
 #include <linux/list.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/pci.h>
 #include <linux/property.h>
 #include <linux/slab.h>
@@ -870,7 +871,7 @@ __hwmon_device_register(struct device *dev, const char *name, void *drvdata,
 	const char *label;
 	struct device *hdev;
 	struct device *tdev = dev;
-	int i, err, id;
+	int i, err, id = -1;
 
 	/* Complain about invalid characters in hwmon name attribute */
 	if (name && (!strlen(name) || strpbrk(name, "-* \t\n")))
@@ -878,7 +879,15 @@ __hwmon_device_register(struct device *dev, const char *name, void *drvdata,
 			 "hwmon: '%s' is not a valid name attribute, please fix\n",
 			 name);
 
-	id = ida_alloc(&hwmon_ida, GFP_KERNEL);
+	if (dev && dev->of_node)
+		id = of_alias_get_id(dev->of_node, HWMON_ID_PREFIX);
+
+	if (id < 0) {
+		id = of_alias_get_highest_id(HWMON_ID_PREFIX);
+		id = id < 0 ? 0 : id + 1;
+	}
+
+	id = ida_alloc_min(&hwmon_ida, id, GFP_KERNEL);
 	if (id < 0)
 		return ERR_PTR(id);
 
