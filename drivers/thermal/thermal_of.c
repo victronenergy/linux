@@ -448,6 +448,8 @@ static struct thermal_zone_device *thermal_of_zone_register(struct device_node *
 		return ERR_PTR(ret);
 	}
 
+	tz->device.of_node = np;
+
 	return tz;
 
 out_kfree_trips:
