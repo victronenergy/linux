@@ -912,7 +912,7 @@ EXPORT_SYMBOL_GPL(nvmem_layout_unregister);
 struct nvmem_device *nvmem_register(const struct nvmem_config *config)
 {
 	struct nvmem_device *nvmem;
-	int rval;
+	int rval = -1;
 
 	if (!config->dev)
 		return ERR_PTR(-EINVAL);
@@ -924,7 +924,15 @@ struct nvmem_device *nvmem_register(const struct nvmem_config *config)
 	if (!nvmem)
 		return ERR_PTR(-ENOMEM);
 
-	rval = ida_alloc(&nvmem_ida, GFP_KERNEL);
+	if (config->dev->of_node)
+		rval = of_alias_get_id(config->dev->of_node, "nvmem");
+
+	if (rval < 0) {
+		rval = of_alias_get_highest_id("nvmem");
+		rval = rval < 0 ? 0 : rval + 1;
+	}
+
+	rval = ida_alloc_min(&nvmem_ida, rval, GFP_KERNEL);
 	if (rval < 0) {
 		kfree(nvmem);
 		return ERR_PTR(rval);
