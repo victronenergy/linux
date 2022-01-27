@@ -429,6 +429,10 @@ static const struct usb_device_id usb_quirk_list[] = {
 	/* Realtek hub in Dell WD19 (Type-C) */
 	{ USB_DEVICE(0x0bda, 0x0487), .driver_info = USB_QUIRK_NO_LPM },
 
+	/* Realtek RTL8723BU WLAN/Bluetooth adapter */
+	{ USB_DEVICE(0x0bda, 0xb720), .driver_info =
+			USB_QUIRK_ENDPOINT_IGNORE },
+
 	/* Generic RTL8153 based ethernet adapters */
 	{ USB_DEVICE(0x0bda, 0x8153), .driver_info = USB_QUIRK_NO_LPM },
 
@@ -600,6 +604,11 @@ static const struct usb_device_id usb_endpoint_ignore[] = {
 	{ USB_DEVICE_INTERFACE_NUMBER(0x06f8, 0xb000, 5), .driver_info = 0x81 },
 	{ USB_DEVICE_INTERFACE_NUMBER(0x0926, 0x0202, 1), .driver_info = 0x85 },
 	{ USB_DEVICE_INTERFACE_NUMBER(0x0926, 0x0208, 1), .driver_info = 0x85 },
+	{ USB_DEVICE_INTERFACE_NUMBER(0x0bda, 0xb720, 0), .driver_info = 0x81 },
+	{ USB_DEVICE_INTERFACE_NUMBER(0x0bda, 0xb720, 0), .driver_info = 0x02 },
+	{ USB_DEVICE_INTERFACE_NUMBER(0x0bda, 0xb720, 0), .driver_info = 0x82 },
+	{ USB_DEVICE_INTERFACE_NUMBER(0x0bda, 0xb720, 1), .driver_info = 0x03 },
+	{ USB_DEVICE_INTERFACE_NUMBER(0x0bda, 0xb720, 1), .driver_info = 0x83 },
 	{ }
 };
 
