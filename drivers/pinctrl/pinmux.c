@@ -170,7 +170,8 @@ static int pin_request(struct pinctrl_dev *pctldev,
 		status = 0;
 
 	if (status) {
-		dev_err(pctldev->dev, "request() failed for pin %d\n", pin);
+		dev_err_probe(pctldev->dev, status,
+			      "request() failed for pin %d\n", pin);
 		module_put(pctldev->owner);
 	}
 
@@ -186,9 +187,8 @@ out_free_pin:
 	}
 out:
 	if (status)
-		dev_err(pctldev->dev, "pin-%d (%s) status %d\n",
-			pin, owner, status);
-
+		dev_err_probe(pctldev->dev, status, "pin-%d (%s)\n",
+			      pin, owner);
 	return status;
 }
 
@@ -439,11 +439,10 @@ int pinmux_enable_setting(const struct pinctrl_setting *setting)
 			pname = desc ? desc->name : "non-existing";
 			gname = pctlops->get_group_name(pctldev,
 						setting->data.mux.group);
-			dev_err(pctldev->dev,
-				"could not request pin %d (%s) from group %s "
-				" on device %s\n",
-				pins[i], pname, gname,
-				pinctrl_dev_get_name(pctldev));
+			dev_err_probe(pctldev->dev, ret,
+				      "could not request pin %d (%s) from group %s on device %s\n",
+				      pins[i], pname, gname,
+				      pinctrl_dev_get_name(pctldev));
 			goto err_pin_request;
 		}
 	}
