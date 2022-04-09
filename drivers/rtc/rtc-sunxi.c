@@ -143,6 +143,8 @@ struct sunxi_rtc_dev {
 	const struct sunxi_rtc_data_year *data_year;
 	void __iomem *base;
 	int irq;
+	u32 losc_ctrl;
+	struct delayed_work losc_work;
 };
 
 static irqreturn_t sunxi_rtc_alarmirq(int irq, void *id)
@@ -434,6 +436,28 @@ static struct attribute *sunxi_rtc_attrs[] = {
 
 ATTRIBUTE_GROUPS(sunxi_rtc);
 
+#define LOSC_POLL_PERIOD	(10 * HZ)
+
+static void sunxi_rtc_losc_poll(struct work_struct *work)
+{
+	struct delayed_work *dw = to_delayed_work(work);
+	struct sunxi_rtc_dev *chip =
+		container_of(dw, struct sunxi_rtc_dev, losc_work);
+	u32 losc_ctrl;
+
+	losc_ctrl = readl(chip->base + SUNXI_LOSC_CTRL);
+
+	if (losc_ctrl != chip->losc_ctrl) {
+		char *event = "LOSC=1";
+		char *envp[] = { event, NULL };
+
+		kobject_uevent_env(&chip->dev->kobj, KOBJ_CHANGE, envp);
+		chip->losc_ctrl = losc_ctrl;
+	}
+
+	schedule_delayed_work(dw, LOSC_POLL_PERIOD);
+}
+
 static const struct of_device_id sunxi_rtc_dt_ids[] = {
 	{ .compatible = "allwinner,sun4i-a10-rtc", .data = &data_year_param[0] },
 	{ .compatible = "allwinner,sun7i-a20-rtc", .data = &data_year_param[1] },
@@ -505,13 +529,29 @@ static int sunxi_rtc_probe(struct platform_device *pdev)
 	writel(SUNXI_ALRM_IRQ_STA_CNT_IRQ_PEND, chip->base +
 			SUNXI_ALRM_IRQ_STA);
 
+	INIT_DELAYED_WORK(&chip->losc_work, sunxi_rtc_losc_poll);
+
 	chip->rtc->ops = &sunxi_rtc_ops;
 
-	return devm_rtc_register_device(chip->rtc);
+	ret = devm_rtc_register_device(chip->rtc);
+	if (ret)
+		return ret;
+
+	schedule_delayed_work(&chip->losc_work, LOSC_POLL_PERIOD);
+
+	return 0;
+}
+
+static void sunxi_rtc_remove(struct platform_device *pdev)
+{
+	struct sunxi_rtc_dev *chip = platform_get_drvdata(pdev);
+
+	cancel_delayed_work_sync(&chip->losc_work);
 }
 
 static struct platform_driver sunxi_rtc_driver = {
 	.probe		= sunxi_rtc_probe,
+	.remove		= sunxi_rtc_remove,
 	.driver		= {
 		.name		= "sunxi-rtc",
 		.of_match_table = sunxi_rtc_dt_ids,
