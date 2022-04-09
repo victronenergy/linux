@@ -21,6 +21,7 @@
 
 #define SUNXI_LOSC_CTRL				0x0000
 #define SUNXI_LOSC_CTRL_KEY			(0x16aa << 16)
+#define SUNXI_LOSC_CTRL_ERROR			BIT(13)
 #define SUNXI_LOSC_CTRL_RTC_HMS_ACC		BIT(8)
 #define SUNXI_LOSC_CTRL_RTC_YMD_ACC		BIT(7)
 #define SUNXI_LOSC_CTRL_OSC32K_SRC_SEL		BIT(0)
@@ -413,6 +414,26 @@ static const struct rtc_class_ops sunxi_rtc_ops = {
 	.alarm_irq_enable	= sunxi_rtc_alarm_irq_enable
 };
 
+static ssize_t losc_status_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct sunxi_rtc_dev *chip = dev_get_drvdata(dev);
+	u32 losc_ctrl;
+
+	losc_ctrl = readl(chip->base + SUNXI_LOSC_CTRL);
+
+	return sysfs_emit(buf, "%s\n",
+			  losc_ctrl & SUNXI_LOSC_CTRL_ERROR ? "error" : "ok");
+}
+static DEVICE_ATTR_RO(losc_status);
+
+static struct attribute *sunxi_rtc_attrs[] = {
+	&dev_attr_losc_status.attr,
+	NULL,
+};
+
+ATTRIBUTE_GROUPS(sunxi_rtc);
+
 static const struct of_device_id sunxi_rtc_dt_ids[] = {
 	{ .compatible = "allwinner,sun4i-a10-rtc", .data = &data_year_param[0] },
 	{ .compatible = "allwinner,sun7i-a20-rtc", .data = &data_year_param[1] },
@@ -494,6 +515,7 @@ static struct platform_driver sunxi_rtc_driver = {
 	.driver		= {
 		.name		= "sunxi-rtc",
 		.of_match_table = sunxi_rtc_dt_ids,
+		.dev_groups	= sunxi_rtc_groups,
 	},
 };
 
