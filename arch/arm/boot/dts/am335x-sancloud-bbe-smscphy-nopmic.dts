@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2012 Texas Instruments Incorporated - https://www.ti.com/
+ */
+
+#include "am335x-sancloud-bbe-smscphy.dts"
+
+&tps {
+	status = "disabled";
+};
