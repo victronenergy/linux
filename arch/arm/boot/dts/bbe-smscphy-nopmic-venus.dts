@@ -1,0 +1,2 @@
+#include "am335x-sancloud-bbe-smscphy-nopmic.dts"
+#include "bbe-venus.dtsi"
