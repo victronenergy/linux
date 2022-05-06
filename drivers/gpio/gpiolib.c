@@ -374,6 +374,7 @@ static int devprop_gpiochip_set_names(struct gpio_chip *chip)
 	struct gpio_device *gdev = chip->gpiodev;
 	struct fwnode_handle *fwnode = dev_fwnode(&gdev->dev);
 	const char **names;
+	u32 *numbers = NULL;
 	int ret, i;
 	int count;
 
@@ -399,10 +400,34 @@ static int devprop_gpiochip_set_names(struct gpio_chip *chip)
 		return ret;
 	}
 
-	for (i = 0; i < count; i++)
-		gdev->descs[i].name = names[i];
+	ret = fwnode_property_count_u32(fwnode, "gpio-line-numbers");
+
+	if (ret == count) {
+		numbers = kcalloc(count, sizeof(*numbers), GFP_KERNEL);
+		if (!numbers) {
+			kfree(names);
+			return -ENOMEM;
+		}
+
+		fwnode_property_read_u32_array(fwnode, "gpio-line-numbers",
+					       numbers, count);
+	} else if (ret >= 0) {
+		dev_warn(&gdev->dev, "wrong number of GPIO line numbers\n");
+	}
+
+	for (i = 0; i < count; i++) {
+		u32 j = numbers ? numbers[i] : i;
+
+		if (j >= gdev->ngpio) {
+			dev_warn(&gdev->dev, "invalid GPIO line number\n");
+			continue;
+		}
+
+		gdev->descs[j].name = names[i];
+	}
 
 	kfree(names);
+	kfree(numbers);
 
 	return 0;
 }
@@ -786,9 +811,11 @@ err_free_ida:
 	ida_free(&gpio_ida, gdev->id);
 err_free_gdev:
 	/* failures here can mean systems won't boot... */
-	pr_err("%s: GPIOs %d..%d (%s) failed to register, %d\n", __func__,
-	       gdev->base, gdev->base + gdev->ngpio - 1,
-	       gc->label ? : "generic", ret);
+	if (ret != -EPROBE_DEFER) {
+		pr_err("%s: GPIOs %d..%d (%s) failed to register, %d\n", __func__,
+		       gdev->base, gdev->base + gdev->ngpio - 1,
+		       gc->label ? : "generic", ret);
+	}
 	kfree(gdev);
 	return ret;
 }

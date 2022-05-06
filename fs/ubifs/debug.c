@@ -18,6 +18,7 @@
 #include <linux/module.h>
 #include <linux/debugfs.h>
 #include <linux/math64.h>
+#include <linux/mount.h>
 #include <linux/uaccess.h>
 #include <linux/random.h>
 #include <linux/ctype.h>
@@ -2770,7 +2771,19 @@ static ssize_t dfs_file_write(struct file *file, const char __user *u,
 	else if (dent == d->dfs_tst_rcvry)
 		d->tst_rcvry = val;
 	else if (dent == d->dfs_ro_error)
-		c->ro_error = !!val;
+		if (val) {
+			c->ro_error = 1;
+			c->no_chk_data_crc = 0;
+			c->vfs_sb->s_flags |= SB_RDONLY;
+			ubifs_warn(c, "debug: switched to read-only mode");
+			mnt_options_changed();
+		} else {
+			c->ro_error = 0;
+			c->no_chk_data_crc = c->mount_opts.chk_data_crc == 1;
+			c->vfs_sb->s_flags &= ~SB_RDONLY;
+			ubifs_warn(c, "debug switched to read-write mode");
+			mnt_options_changed();
+		}
 	else
 		return -EINVAL;
 

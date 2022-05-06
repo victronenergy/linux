@@ -1,0 +1,19 @@
+&am33xx_pinmux {
+	dcan0_pins: dcan0_pins {
+		pinctrl-single,pins = <
+			AM33XX_PADCONF(AM335X_PIN_UART1_RTSN, PIN_INPUT_PULLUP, MUX_MODE2)
+			AM33XX_PADCONF(AM335X_PIN_UART1_CTSN, PIN_OUTPUT_PULLUP, MUX_MODE2)
+		>;
+	};
+};
+
+&dcan0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&dcan0_pins>;
+};
+
+// Disable the i2c2, uses the same pins as the CAN-bus
+&i2c2 {
+	status = "disabled";
+};

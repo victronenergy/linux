@@ -335,9 +335,9 @@ static int sun4i_can_start(struct net_device *dev)
 
 	/* enable interrupts */
 	if (priv->can.ctrlmode & CAN_CTRLMODE_BERR_REPORTING)
-		writel(0xFF, priv->base + SUN4I_REG_INTEN_ADDR);
+		writel(0xFF & ~SUN4I_INT_ARB_LOST, priv->base + SUN4I_REG_INTEN_ADDR);
 	else
-		writel(0xFF & ~SUN4I_INTEN_BERR,
+		writel(0xFF & ~(SUN4I_INTEN_BERR | SUN4I_INT_ARB_LOST),
 		       priv->base + SUN4I_REG_INTEN_ADDR);
 
 	/* enter the selected mode */
@@ -599,6 +599,7 @@ static int sun4i_can_err(struct net_device *dev, u8 isrc, u8 status)
 		else
 			state = CAN_STATE_ERROR_PASSIVE;
 	}
+#if 0
 	if (isrc & SUN4I_INT_ARB_LOST) {
 		/* arbitration lost interrupt */
 		netdev_dbg(dev, "arbitration lost interrupt\n");
@@ -609,6 +610,7 @@ static int sun4i_can_err(struct net_device *dev, u8 isrc, u8 status)
 			cf->data[0] = (alc >> 8) & 0x1f;
 		}
 	}
+#endif
 
 	if (state != priv->can.state) {
 		tx_state = txerr >= rxerr ? state : 0;

@@ -25,8 +25,6 @@
 #define REG_CALIBRATE		0xcc
 
 struct ili2xxx_chip {
-	int (*read_reg)(struct i2c_client *client, u8 reg,
-			void *buf, size_t len);
 	int (*get_touch_data)(struct i2c_client *client, u8 *data);
 	bool (*parse_touch_data)(const u8 *data, unsigned int finger,
 				 unsigned int *x, unsigned int *y,
@@ -53,7 +51,7 @@ static int ili210x_read_reg(struct i2c_client *client,
 	struct i2c_msg msg[] = {
 		{
 			.addr	= client->addr,
-			.flags	= 0,
+			.flags	= I2C_M_STOP,
 			.len	= 1,
 			.buf	= &reg,
 		},
@@ -102,7 +100,6 @@ static bool ili210x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili210x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili210x_touchdata_to_coords,
 	.continue_polling	= ili210x_check_continue_polling,
@@ -163,7 +160,6 @@ static bool ili211x_decline_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili211x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili211x_read_touch_data,
 	.parse_touch_data	= ili211x_touchdata_to_coords,
 	.continue_polling	= ili211x_decline_polling,
@@ -194,7 +190,6 @@ static bool ili212x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili212x_chip = {
-	.read_reg		= ili210x_read_reg,
 	.get_touch_data		= ili210x_read_touch_data,
 	.parse_touch_data	= ili212x_touchdata_to_coords,
 	.continue_polling	= ili212x_check_continue_polling,
@@ -202,31 +197,11 @@ static const struct ili2xxx_chip ili212x_chip = {
 	.has_calibrate_reg	= true,
 };
 
-static int ili251x_read_reg(struct i2c_client *client,
-			    u8 reg, void *buf, size_t len)
-{
-	int error;
-	int ret;
-
-	ret = i2c_master_send(client, &reg, 1);
-	if (ret == 1) {
-		usleep_range(5000, 5500);
-
-		ret = i2c_master_recv(client, buf, len);
-		if (ret == len)
-			return 0;
-	}
-
-	error = ret < 0 ? ret : -EIO;
-	dev_err(&client->dev, "%s failed: %d\n", __func__, error);
-	return ret;
-}
-
 static int ili251x_read_touch_data(struct i2c_client *client, u8 *data)
 {
 	int error;
 
-	error = ili251x_read_reg(client, REG_TOUCHDATA,
+	error = ili210x_read_reg(client, REG_TOUCHDATA,
 				 data, ILI251X_DATA_SIZE1);
 	if (!error && data[0] == 2) {
 		error = i2c_master_recv(client, data + ILI251X_DATA_SIZE1,
@@ -262,7 +237,6 @@ static bool ili251x_check_continue_polling(const u8 *data, bool touch)
 }
 
 static const struct ili2xxx_chip ili251x_chip = {
-	.read_reg		= ili251x_read_reg,
 	.get_touch_data		= ili251x_read_touch_data,
 	.parse_touch_data	= ili251x_touchdata_to_coords,
 	.continue_polling	= ili251x_check_continue_polling,
@@ -420,9 +394,9 @@ static int ili210x_i2c_probe(struct i2c_client *client,
 		if (error)
 			return error;
 
-		usleep_range(50, 100);
+		usleep_range(200, 400);
 		gpiod_set_value_cansleep(reset_gpio, 0);
-		msleep(100);
+		msleep(300);
 	}
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);

@@ -162,4 +162,9 @@ config LEDS_TRIGGER_ACTPWR
 	  on for at least half of the time.
 	  If unsure, say N.
 
+config LEDS_TRIGGER_SYNC_BLINK
+	tristate "LED synchrounous blink trigger"
+	help
+	  This allows LEDs to blink synchronously, fast or slow.
+
 endif # LEDS_TRIGGERS

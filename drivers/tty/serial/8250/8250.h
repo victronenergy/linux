@@ -108,6 +108,7 @@ struct serial8250_config {
 
 #define SERIAL8250_PORT(_base, _irq) SERIAL8250_PORT_FLAGS(_base, _irq, 0)
 
+#define SERIAL8250_DEVNAME "tty" CONFIG_SERIAL_8250_DEVNAME
 
 static inline int serial_in(struct uart_8250_port *up, int offset)
 {
@@ -150,6 +151,7 @@ static inline bool serial8250_clear_THRI(struct uart_8250_port *up)
 }
 
 struct uart_8250_port *serial8250_get_port(int line);
+int serial8250_add_one_port(struct uart_8250_port *up);
 
 void serial8250_rpm_get(struct uart_8250_port *p);
 void serial8250_rpm_put(struct uart_8250_port *p);
@@ -249,6 +251,20 @@ static inline int serial8250_in_MCR(struct uart_8250_port *up)
 #define ALPHA_KLUDGE_MCR  (UART_MCR_OUT2 | UART_MCR_OUT1)
 #else
 #define ALPHA_KLUDGE_MCR 0
+#endif
+
+#ifdef CONFIG_SERIAL_8250_ISA
+void serial8250_isa_init_ports(unsigned int nr_uarts);
+int serial8250_isa_init(unsigned int nr_uarts);
+void serial8250_isa_exit(void);
+void serial8250_isa_unregister_port(struct uart_8250_port *uart);
+void serial8250_isa_fixup(int n, struct uart_8250_port *uart);
+#else
+static inline void serial8250_isa_init_ports(unsigned int nr_uarts) { }
+static inline int serial8250_isa_init(unsigned int nr_uarts) { return 0; }
+static inline void serial8250_isa_exit(void) { }
+static inline void serial8250_isa_unregister_port(struct uart_8250_port *uart) { }
+static inline void serial8250_isa_fixup(int n, struct uart_8250_port *uart) { }
 #endif
 
 #ifdef CONFIG_SERIAL_8250_PNP
