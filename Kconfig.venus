@@ -220,6 +220,7 @@ config VENUS_MODULES
 	select CAN
 	select CAN_RAW
 	select CAN_BCM
+	select CAN_GS_USB
 	select CAN_KVASER_USB
 	select CAN_MCP25XXFD
 	select CAN_PEAK_USB
