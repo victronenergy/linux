@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+
+/dts-v1/;
+
+#include "sun7i-a20-einstein-ccgx2.dts"
+
+/ {
+        model = "Cerbo GX Light";
+        compatible = "victronenergy,cerbo-gx-light",
+                     "cubietech,einstein",
+                     "allwinner,sun7i-a20";
+};
