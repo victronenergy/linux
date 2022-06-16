@@ -10,3 +10,14 @@
                      "cubietech,einstein",
                      "allwinner,sun7i-a20";
 };
+
+// The atmel chip is not avialable on a Cerbo GX Light, so the second
+// CAN-bus on uart3 is not available, nor the ADC on i2c3.
+
+&uart3 {
+	status = "disabled";
+};
+
+&i2c3 {
+	status = "disabled";
+};
