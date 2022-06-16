@@ -288,11 +288,12 @@
 	status = "okay";
 };
 
+// The rs485 driver is not placed, so disable the uart.
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart1_pa_pins>;
 	rts-gpios = <&pio 0 9 GPIO_ACTIVE_HIGH>; /* PA9 */
-	status = "okay";
+	status = "disabled";
 };
 
 &uart3 {
