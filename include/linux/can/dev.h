@@ -21,6 +21,9 @@
 #include <linux/can/skb.h>
 #include <linux/netdevice.h>
 
+#define CAN_BITRATE_UNSET 0
+#define CAN_BITRATE_UNKNOWN (-1U)
+
 /*
  * CAN mode
  */
