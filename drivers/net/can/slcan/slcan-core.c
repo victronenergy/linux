@@ -615,7 +615,7 @@ static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)
 		netdev_warn(dev, "xmit: iface is down\n");
 		goto out;
 	}
-	if (sl->tty == NULL) {
+	if (!sl->tty) {
 		spin_unlock(&sl->lock);
 		goto out;
 	}
@@ -703,7 +703,7 @@ static int slc_open(struct net_device *dev)
 	unsigned char cmd[SLC_MTU];
 	int err, s;
 
-	if (sl->tty == NULL)
+	if (!sl->tty)
 		return -ENODEV;
 
 	/* The baud rate is not set with the command
@@ -829,7 +829,7 @@ static void slc_sync(void)
 
 	for (i = 0; i < maxdev; i++) {
 		dev = slcan_devs[i];
-		if (dev == NULL)
+		if (!dev)
 			break;
 
 		sl = netdev_priv(dev);
@@ -849,9 +849,8 @@ static struct slcan *slc_alloc(void)
 
 	for (i = 0; i < maxdev; i++) {
 		dev = slcan_devs[i];
-		if (dev == NULL)
+		if (!dev)
 			break;
-
 	}
 
 	/* Sorry, too many, all slots in use */
@@ -897,7 +896,7 @@ static int slcan_open(struct tty_struct *tty)
 	if (!capable(CAP_NET_ADMIN))
 		return -EPERM;
 
-	if (tty->ops->write == NULL)
+	if (!tty->ops->write)
 		return -EOPNOTSUPP;
 
 	/* RTnetlink lock is misused here to serialize concurrent
@@ -919,7 +918,7 @@ static int slcan_open(struct tty_struct *tty)
 	/* OK.  Find a free SLCAN channel to use. */
 	err = -ENFILE;
 	sl = slc_alloc();
-	if (sl == NULL)
+	if (!sl)
 		goto err_exit;
 
 	sl->tty = tty;
@@ -1067,7 +1066,7 @@ static void __exit slcan_exit(void)
 	unsigned long timeout = jiffies + HZ;
 	int busy = 0;
 
-	if (slcan_devs == NULL)
+	if (!slcan_devs)
 		return;
 
 	/* First of all: check for active disciplines and hangup them.
