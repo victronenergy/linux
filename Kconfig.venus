@@ -220,11 +220,16 @@ config VENUS_MODULES
 	select CAN
 	select CAN_RAW
 	select CAN_BCM
+	select CAN_8DEV_USB
+	select CAN_EMS_USB
+	select CAN_ESD_USB2
 	select CAN_GS_USB
 	select CAN_KVASER_USB
+	select CAN_MCBA_USB
 	select CAN_MCP25XXFD
 	select CAN_PEAK_USB
 	select CAN_SLCAN
+	select CAN_VCAN
 
 	# bluetooth
 	select BT
