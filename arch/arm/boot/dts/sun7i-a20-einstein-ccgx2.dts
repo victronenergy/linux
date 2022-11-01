@@ -344,21 +344,6 @@
 		wireless-controller@1 {
 			compatible = "usbbda,b720";
 			reg = <1>;
-
-			#address-cells = <2>;
-			#size-cells = <0>;
-
-			bluetooth@0 {
-				compatible = "usbifbda,b720.config1.0";
-				reg = <0 1>;
-				status = "disabled";
-			};
-
-			bluetooth@1 {
-				compatible = "usbifbda,b720.config1.1";
-				reg = <1 1>;
-				status = "disabled";
-			};
 		};
 
 		port@2 {
