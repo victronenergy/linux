@@ -88,7 +88,7 @@
 		compatible = "gpio-keys";
 
 		button {
-			linux,code = <KEY_CONFIG>;
+			linux,code = <KEY_PAUSE>;
 			gpios = <&pio 0 10 GPIO_ACTIVE_LOW>; /* PA10 */
 		};
 	};
