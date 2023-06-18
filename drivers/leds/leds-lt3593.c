@@ -23,6 +23,7 @@ static int lt3593_led_set(struct led_classdev *led_cdev,
 {
 	struct lt3593_led_data *led_dat =
 		container_of(led_cdev, struct lt3593_led_data, cdev);
+	unsigned long flags;
 
 	/*
 	 * The LT3593 resets its internal current level register to the maximum
@@ -38,12 +39,21 @@ static int lt3593_led_set(struct led_classdev *led_cdev,
 		return 0;
 	}
 
+	/*
+	 * We must disable IRQs since interrupting the signalling for
+	 * more than 128 us will result in an incorrect setting.
+	 */
+
+	local_irq_save(flags);
+
 	while (value++ < 32) {
-		gpiod_set_value_cansleep(led_dat->gpiod, 0);
-		udelay(1);
-		gpiod_set_value_cansleep(led_dat->gpiod, 1);
-		udelay(1);
+		gpiod_set_value(led_dat->gpiod, 0);
+		ndelay(250);
+		gpiod_set_value(led_dat->gpiod, 1);
+		ndelay(250);
 	}
+
+	local_irq_restore(flags);
 
 	return 0;
 }
