@@ -23,7 +23,6 @@ static int lt3593_led_set(struct led_classdev *led_cdev,
 {
 	struct lt3593_led_data *led_dat =
 		container_of(led_cdev, struct lt3593_led_data, cdev);
-	int pulses;
 
 	/*
 	 * The LT3593 resets its internal current level register to the maximum
@@ -39,18 +38,7 @@ static int lt3593_led_set(struct led_classdev *led_cdev,
 		return 0;
 	}
 
-	pulses = 32 - (value * 32) / 255;
-
-	if (pulses == 0) {
-		gpiod_set_value_cansleep(led_dat->gpiod, 0);
-		mdelay(1);
-		gpiod_set_value_cansleep(led_dat->gpiod, 1);
-		return 0;
-	}
-
-	gpiod_set_value_cansleep(led_dat->gpiod, 1);
-
-	while (pulses--) {
+	while (value++ < 32) {
 		gpiod_set_value_cansleep(led_dat->gpiod, 0);
 		udelay(1);
 		gpiod_set_value_cansleep(led_dat->gpiod, 1);
@@ -86,7 +74,8 @@ static int lt3593_led_probe(struct platform_device *pdev)
 	}
 
 	led_data->cdev.brightness_set_blocking = lt3593_led_set;
-	led_data->cdev.brightness = state ? LED_FULL : LED_OFF;
+	led_data->cdev.max_brightness = 31;
+	led_data->cdev.brightness = state ? 31 : 0;
 
 	init_data.fwnode = child;
 	init_data.devicename = LED_LT3593_NAME;
