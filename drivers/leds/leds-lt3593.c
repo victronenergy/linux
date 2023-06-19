@@ -63,9 +63,9 @@ static int lt3593_led_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct lt3593_led_data *led_data;
 	struct fwnode_handle *child;
-	int ret, state = LEDS_GPIO_DEFSTATE_OFF;
+	enum led_default_state state;
+	int ret;
 	struct led_init_data init_data = {};
-	const char *tmp;
 
 	led_data = devm_kzalloc(dev, sizeof(*led_data), GFP_KERNEL);
 	if (!led_data)
@@ -78,10 +78,7 @@ static int lt3593_led_probe(struct platform_device *pdev)
 
 	child = device_get_next_child_node(dev, NULL);
 
-	if (!fwnode_property_read_string(child, "default-state", &tmp)) {
-		if (!strcmp(tmp, "on"))
-			state = LEDS_GPIO_DEFSTATE_ON;
-	}
+	state = led_init_default_state_get(child);
 
 	led_data->cdev.brightness_set_blocking = lt3593_led_set;
 	led_data->cdev.max_brightness = 31;
