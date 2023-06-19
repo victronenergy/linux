@@ -78,10 +78,6 @@ static int lt3593_led_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	led_data->gpiod = devm_gpiod_get(dev, "lltc,ctrl", 0);
-	if (IS_ERR(led_data->gpiod))
-		return PTR_ERR(led_data->gpiod);
-
 	child = device_get_next_child_node(dev, NULL);
 
 	if (!fwnode_property_read_string(child, "default-state", &tmp)) {
@@ -96,8 +92,14 @@ static int lt3593_led_probe(struct platform_device *pdev)
 	init_data.devicename = LED_LT3593_NAME;
 	init_data.default_label = ":";
 
-	ret = devm_led_classdev_register_ext(dev, &led_data->cdev, &init_data);
 	fwnode_handle_put(child);
+
+	led_data->gpiod = devm_gpiod_get(dev, "lltc,ctrl",
+				state ? GPIOD_OUT_HIGH : GPIOD_OUT_LOW);
+	if (IS_ERR(led_data->gpiod))
+		return PTR_ERR(led_data->gpiod);
+
+	ret = devm_led_classdev_register_ext(dev, &led_data->cdev, &init_data);
 	if (ret < 0)
 		return ret;
 
