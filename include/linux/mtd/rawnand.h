@@ -67,8 +67,6 @@ struct gpio_desc;
 
 /* Extended commands for large page devices */
 #define NAND_CMD_READSTART	0x30
-#define NAND_CMD_READCACHESEQ	0x31
-#define NAND_CMD_READCACHEEND	0x3f
 #define NAND_CMD_RNDOUTSTART	0xE0
 #define NAND_CMD_CACHEDPROG	0x15
 
@@ -1101,14 +1099,12 @@ struct nand_controller_ops {
  * @supported_op.data_only_read: The controller supports reading more data from
  *			the bus without restarting an entire read operation nor
  *			changing the column.
- * @supported_op.cont_read: The controller supports sequential cache reads.
  */
 struct nand_controller {
 	struct mutex lock;
 	const struct nand_controller_ops *ops;
 	struct {
 		unsigned int data_only_read: 1;
-		unsigned int cont_read: 1;
 	} supported_op;
 };
 
@@ -1316,11 +1312,6 @@ struct nand_chip {
 	int read_retries;
 	struct nand_secure_region *secure_regions;
 	u8 nr_secure_regions;
-	struct {
-		bool ongoing;
-		unsigned int first_page;
-		unsigned int last_page;
-	} cont_read;
 
 	/* Externals */
 	struct nand_controller *controller;
