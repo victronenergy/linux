@@ -25,6 +25,11 @@ properties:
   interrupts:
     maxItems: 1
 
+  allwinner,losc-external:
+    $ref: /schemas/types.yaml#/definitions/flag
+    description:
+      Use external 32 kHz oscillator.
+
 required:
   - compatible
   - reg
