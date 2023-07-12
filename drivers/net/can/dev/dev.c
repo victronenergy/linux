@@ -208,7 +208,8 @@ static int can_calc_bittiming(struct net_device *dev, struct can_bittiming *bt,
 
 	/* check for sjw user settings */
 	if (!bt->sjw || !btc->sjw_max) {
-		bt->sjw = 1;
+		/* If user space provides no sjw, use sane default of phase_seg2 / 2 */
+		bt->sjw = max(1U, min(bt->phase_seg1, bt->phase_seg2 / 2));
 	} else {
 		/* bt->sjw is at least 1 -> sanitize upper bound to sjw_max */
 		if (bt->sjw > btc->sjw_max)
