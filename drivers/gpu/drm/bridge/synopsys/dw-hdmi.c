@@ -3314,6 +3314,23 @@ bool dw_hdmi_bus_fmt_is_420(struct dw_hdmi *hdmi)
 }
 EXPORT_SYMBOL_GPL(dw_hdmi_bus_fmt_is_420);
 
+static struct device_node *dw_hdmi_get_ddc_node(struct device_node *np)
+{
+	struct device_node *ddc_node = NULL;
+	struct device_node *remote;
+
+	remote = of_graph_get_remote_node(np, 1, -1);
+	if (remote) {
+		ddc_node = of_parse_phandle(remote, "ddc-i2c-bus", 0);
+		of_node_put(remote);
+	}
+
+	if (!ddc_node)
+		ddc_node = of_parse_phandle(np, "ddc-i2c-bus", 0);
+
+	return ddc_node;
+}
+
 struct dw_hdmi *dw_hdmi_probe(struct platform_device *pdev,
 			      const struct dw_hdmi_plat_data *plat_data)
 {
@@ -3356,7 +3373,7 @@ struct dw_hdmi *dw_hdmi_probe(struct platform_device *pdev,
 	if (ret < 0)
 		return ERR_PTR(ret);
 
-	ddc_node = of_parse_phandle(np, "ddc-i2c-bus", 0);
+	ddc_node = dw_hdmi_get_ddc_node(np);
 	if (ddc_node) {
 		hdmi->ddc = of_get_i2c_adapter_by_node(ddc_node);
 		of_node_put(ddc_node);
