@@ -578,7 +578,7 @@ static void slcan_transmit(struct work_struct *work)
  */
 static void slcan_write_wakeup(struct tty_struct *tty)
 {
-	struct slcan *sl = (struct slcan *)tty->disc_data;
+	struct slcan *sl = tty->disc_data;
 
 	schedule_work(&sl->tx_work);
 }
@@ -760,7 +760,7 @@ static const struct net_device_ops slcan_netdev_ops = {
 static void slcan_receive_buf(struct tty_struct *tty,
 			      const unsigned char *cp, char *fp, int count)
 {
-	struct slcan *sl = (struct slcan *) tty->disc_data;
+	struct slcan *sl = tty->disc_data;
 
 	if (!netif_running(sl->dev))
 		return;
@@ -844,7 +844,7 @@ static int slcan_open(struct tty_struct *tty)
  */
 static void slcan_close(struct tty_struct *tty)
 {
-	struct slcan *sl = (struct slcan *) tty->disc_data;
+	struct slcan *sl = tty->disc_data;
 
 	unregister_candev(sl->dev);
 
@@ -868,7 +868,7 @@ static void slcan_close(struct tty_struct *tty)
 static int slcan_ioctl(struct tty_struct *tty, struct file *file,
 		       unsigned int cmd, unsigned long arg)
 {
-	struct slcan *sl = (struct slcan *) tty->disc_data;
+	struct slcan *sl = tty->disc_data;
 	unsigned int tmp;
 
 	switch (cmd) {
