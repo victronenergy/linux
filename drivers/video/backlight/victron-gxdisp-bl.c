@@ -81,7 +81,7 @@ static int gxbl_read(struct gxbl *gxbl, u8 addr, void *buf, size_t len)
 	return 0;
 }
 
-static int gxbl_write(struct gxbl *gxbl, u8 addr, void *buf, size_t len)
+static int gxbl_write(struct gxbl *gxbl, u8 addr, const void *buf, size_t len)
 {
 	return i2c_smbus_write_i2c_block_data(gxbl->i2c, addr, len, buf);
 }
