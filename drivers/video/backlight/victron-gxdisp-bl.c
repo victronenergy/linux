@@ -57,7 +57,11 @@
 #define GXBL_ADC_MAP_SIZE	9
 
 static const u8 gxbl_brightness_levels[] = {
-	0, 2, 4, 8, 13, 20, 29, 40, 54, 72, 92, 116, 145, 177, 214, 255,
+	0, 2, 4, 8, 13, 20, 29, 40, 54, 72, 92, 116, 145, 177, 214, 224,
+};
+
+static const u8 gxbl_adc_map[GXBL_ADC_MAP_SIZE] = {
+	1, 32, 64, 96, 128, 160, 192, 224, 224,
 };
 
 struct gxbl {
@@ -348,6 +352,30 @@ static const struct attribute_group gxbl_attr_group = {
 	.attrs = gxbl_attrs,
 };
 
+static int gxbl_update_adc_map(struct gxbl *gxbl)
+{
+	u8 adc_map[GXBL_ADC_MAP_SIZE];
+	int err;
+	int i;
+
+	err = gxbl_read(gxbl, GXBL_ADC_MAP, adc_map, sizeof(adc_map));
+	if (err)
+		return err;
+
+	for (i = 0; i < GXBL_ADC_MAP_SIZE; i++)
+		if (adc_map[i] != gxbl_adc_map[i])
+			break;
+
+	if (i == GXBL_ADC_MAP_SIZE)
+		return 0;
+
+	err = gxbl_write(gxbl, GXBL_ADC_MAP, gxbl_adc_map, GXBL_ADC_MAP_SIZE);
+	if (err)
+		return err;
+
+	return 0;
+}
+
 static int gxbl_probe(struct i2c_client *i2c)
 {
 	struct device_node *np = i2c->dev.of_node;
@@ -402,6 +430,11 @@ static int gxbl_probe(struct i2c_client *i2c)
 		err = ctrl;
 		goto err_out;
 	}
+
+	err = gxbl_update_adc_map(gxbl);
+	if (err)
+		dev_warn(&i2c->dev, "error updating auto brighness map: %d\n",
+			 err);
 
 	brightness = gxbl_read8(gxbl, GXBL_PWM_VAL);
 	gxbl->levels = gxbl_brightness_levels;
