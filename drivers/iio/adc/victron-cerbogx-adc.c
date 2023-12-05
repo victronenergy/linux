@@ -11,7 +11,7 @@
 #include <linux/delay.h>
 
 #define MIN_FW_REV	4
-#define MAX_FW_REV	4
+#define MAX_FW_REV	5
 
 #define NUM_CHANNELS	9
 #define MAX_AGE_MS	500
