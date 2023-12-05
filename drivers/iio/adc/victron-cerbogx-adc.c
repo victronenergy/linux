@@ -34,6 +34,7 @@ struct cerbo_adc {
 	int values[NUM_CHANNELS];
 	unsigned long time;
 	struct cerbo_adc_data data;
+	int fwversion;
 };
 
 #define CERBO_ADC_CHANNEL(i)  {					\
@@ -126,7 +127,7 @@ static const struct iio_info cerbo_adc_info = {
 	.read_raw = &cerbo_adc_read_raw,
 };
 
-static int cerbo_adc_validate(struct i2c_client *client)
+static int cerbo_adc_validate(struct i2c_client *client, int *fwversion)
 {
 	struct device *dev = &client->dev;
 	struct cerbo_adc_config cfg;
@@ -176,6 +177,8 @@ static int cerbo_adc_validate(struct i2c_client *client)
 
 	dev_info(dev, "Cerbo GX ADC hw %d, fw %d\n", hw_rev, fw_rev);
 
+	*fwversion = fw_rev;
+
 	return 0;
 }
 
@@ -184,9 +187,10 @@ static int cerbo_adc_probe(struct i2c_client *client,
 {
 	struct cerbo_adc *cadc;
 	struct iio_dev *iio;
+	int fwversion;
 	int err;
 
-	err = cerbo_adc_validate(client);
+	err = cerbo_adc_validate(client, &fwversion);
 	if (err) {
 		dev_err(&client->dev, "probe failed: %d\n", err);
 		return err;
@@ -200,6 +204,7 @@ static int cerbo_adc_probe(struct i2c_client *client,
 
 	cadc = iio_priv(iio);
 	cadc->i2c = client;
+	cadc->fwversion = fwversion;
 
 	iio->dev.parent = &client->dev;
 	iio->dev.of_node = client->dev.of_node;
@@ -218,6 +223,23 @@ static int cerbo_adc_probe(struct i2c_client *client,
 	return 0;
 }
 
+static ssize_t fwversion_show(struct device *dev, struct device_attribute *attr,
+			      char *buf)
+{
+	struct cerbo_adc *cadc = iio_priv(dev_get_drvdata(dev));
+
+	return sysfs_emit(buf, "%d\n", cadc->fwversion);
+}
+
+static DEVICE_ATTR_RO(fwversion);
+
+static struct attribute *cerbo_adc_attrs[] = {
+	&dev_attr_fwversion.attr,
+	NULL,
+};
+
+ATTRIBUTE_GROUPS(cerbo_adc);
+
 static const struct of_device_id cerbo_adc_dt_ids[] = {
 	{ .compatible = "victronenergy,cerbo-gx-adc" },
 	{}
@@ -229,6 +251,7 @@ static struct i2c_driver cerbo_adc_driver = {
 	.driver = {
 		.name		= "cerbo-gx-adc",
 		.of_match_table	= cerbo_adc_dt_ids,
+		.dev_groups	= cerbo_adc_groups,
 	},
 };
 module_i2c_driver(cerbo_adc_driver);
