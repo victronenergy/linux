@@ -556,7 +556,6 @@ static void slcan_transmit(struct work_struct *work)
 	if (sl->xleft <= 0)  {
 		if (unlikely(test_bit(SLF_XCMD, &sl->flags))) {
 			clear_bit(SLF_XCMD, &sl->flags);
-			clear_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
 			spin_unlock_bh(&sl->lock);
 			wake_up(&sl->xcmd_wait);
 			return;
@@ -566,12 +565,12 @@ static void slcan_transmit(struct work_struct *work)
 		 * transmission of another packet
 		 */
 		sl->dev->stats.tx_packets++;
-		clear_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
 		spin_unlock_bh(&sl->lock);
 		netif_wake_queue(sl->dev);
 		return;
 	}
 
+	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
 	actual = sl->tty->ops->write(sl->tty, sl->xhead, sl->xleft);
 	sl->xleft -= actual;
 	sl->xhead += actual;
@@ -585,6 +584,7 @@ static void slcan_tty_write_wakeup(struct tty_struct *tty)
 {
 	struct slcan *sl = tty->disc_data;
 
+	clear_bit(TTY_DO_WRITE_WAKEUP, &tty->flags);
 	schedule_work(&sl->tx_work);
 }
 
