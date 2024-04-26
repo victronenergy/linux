@@ -33,4 +33,8 @@ config CAN_SLCAN_SERDEV
 	help
 	  Build the SLCAN serial device bus driver.
 
+config CAN_SLCAN_IFNAME
+	string "Interface name prefix"
+	default "can"
+
 endif

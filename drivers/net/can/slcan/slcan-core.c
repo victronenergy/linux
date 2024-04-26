@@ -68,6 +68,10 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Oliver Hartkopp <socketcan@hartkopp.net>");
 MODULE_AUTHOR("Dario Binacchi <dario.binacchi@amarulasolutions.com>");
 
+static char *slcan_ifname = CONFIG_CAN_SLCAN_IFNAME;
+module_param_named(ifname, slcan_ifname, charp, 0444);
+MODULE_PARM_DESC(ifname, "Interface name prefix override");
+
 /* maximum rx buffer len: extended CAN frame with timestamp */
 #define SLCAN_MTU (sizeof("T1111222281122334455667788EA5F\r") + 1)
 
@@ -785,6 +789,8 @@ static struct slcan *slcan_create(void)
 	sl->dev	= dev;
 	dev->netdev_ops = &slcan_netdev_ops;
 	dev->ethtool_ops = &slcan_ethtool_ops;
+
+	snprintf(dev->name, sizeof(dev->name), "%s%%d", slcan_ifname);
 
 	return sl;
 }
