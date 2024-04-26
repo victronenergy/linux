@@ -819,6 +819,7 @@ static int slcan_open(struct tty_struct *tty)
 	sl->dev	= dev;
 	dev->netdev_ops = &slc_netdev_ops;
 	dev->ethtool_ops = &slcan_ethtool_ops;
+	strncpy(dev->name, "slcan%d", sizeof(dev->name));
 
 	/* Mark ldisc channel as alive */
 	sl->tty = tty;
