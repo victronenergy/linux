@@ -301,6 +301,13 @@
 	pinctrl-0 = <&uart3_ph_pins>, <&uart3_cts_rts_ph_pins>;
 	uart-has-rtscts;
 	status = "okay";
+
+	slcan: can {
+		compatible = "slcan";
+		current-speed = <1500000>;
+		flow-control;
+		err-rst-on-open;
+	};
 };
 
 &uart4 {
