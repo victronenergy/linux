@@ -581,7 +581,7 @@ static void slcan_transmit(struct work_struct *work)
 /* Called by the driver when there's room for more data.
  * Schedule the transmit.
  */
-static void slcan_write_wakeup(struct tty_struct *tty)
+static void slcan_tty_write_wakeup(struct tty_struct *tty)
 {
 	struct slcan *sl = tty->disc_data;
 
@@ -774,7 +774,7 @@ static const struct net_device_ops slcan_netdev_ops = {
  * be re-entered while running but other ldisc functions may be called
  * in parallel
  */
-static void slcan_receive_buf(struct tty_struct *tty, const u8 *cp,
+static void slcan_tty_receive_buf(struct tty_struct *tty, const u8 *cp,
 			      const u8 *fp, size_t count)
 {
 	struct slcan *sl = tty->disc_data;
@@ -800,7 +800,7 @@ static void slcan_receive_buf(struct tty_struct *tty, const u8 *cp,
  *
  * Called in process context serialized from other ldisc calls.
  */
-static int slcan_open(struct tty_struct *tty)
+static int slcan_tty_open(struct tty_struct *tty)
 {
 	struct net_device *dev;
 	struct slcan *sl;
@@ -859,7 +859,7 @@ static int slcan_open(struct tty_struct *tty)
  *
  * We also use this method for a hangup event.
  */
-static void slcan_close(struct tty_struct *tty)
+static void slcan_tty_close(struct tty_struct *tty)
 {
 	struct slcan *sl = tty->disc_data;
 
@@ -882,7 +882,7 @@ static void slcan_close(struct tty_struct *tty)
 }
 
 /* Perform I/O control on an active SLCAN channel. */
-static int slcan_ioctl(struct tty_struct *tty, unsigned int cmd,
+static int slcan_tty_ioctl(struct tty_struct *tty, unsigned int cmd,
 		       unsigned long arg)
 {
 	struct slcan *sl = tty->disc_data;
@@ -907,11 +907,11 @@ static struct tty_ldisc_ops slcan_ldisc = {
 	.owner		= THIS_MODULE,
 	.num		= N_SLCAN,
 	.name		= KBUILD_MODNAME,
-	.open		= slcan_open,
-	.close		= slcan_close,
-	.ioctl		= slcan_ioctl,
-	.receive_buf	= slcan_receive_buf,
-	.write_wakeup	= slcan_write_wakeup,
+	.open		= slcan_tty_open,
+	.close		= slcan_tty_close,
+	.ioctl		= slcan_tty_ioctl,
+	.receive_buf	= slcan_tty_receive_buf,
+	.write_wakeup	= slcan_tty_write_wakeup,
 };
 
 static int __init slcan_init(void)
