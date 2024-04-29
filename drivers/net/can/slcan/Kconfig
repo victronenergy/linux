@@ -1,0 +1,36 @@
+config CAN_SLCAN
+	tristate "Serial / USB serial CAN Adaptors (slcan)"
+	depends on SERIAL_DEV_BUS || TTY
+	help
+	  CAN driver for several 'low cost' CAN interfaces that are attached
+	  via serial lines or via USB-to-serial adapters using the LAWICEL
+	  ASCII protocol. The driver implements the tty linediscipline N_SLCAN.
+
+	  As only the sending and receiving of CAN frames is implemented, this
+	  driver should work with the (serial/USB) CAN hardware from:
+	  www.canusb.com / www.can232.com / www.mictronics.de / www.canhack.de
+
+	  This driver can also be built as a module. If so, the module
+	  will be called slcan.
+
+if CAN_SLCAN
+
+config CAN_SLCAN_LDISC
+	bool "SLCAN line discipline"
+	depends on TTY
+	default y
+	help
+	  Build the SLCAN TTY line discipline.
+
+	  Userspace tools to attach the SLCAN line discipline (slcan_attach,
+	  slcand) can be found in the can-utils at the linux-can project, see
+	  https://github.com/linux-can/can-utils for details.
+
+config CAN_SLCAN_SERDEV
+	bool "SLCAN serial device bus driver"
+	depends on SERIAL_DEV_BUS
+	default y
+	help
+	  Build the SLCAN serial device bus driver.
+
+endif
