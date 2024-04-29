@@ -53,6 +53,9 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/workqueue.h>
+#include <linux/of.h>
+#include <linux/property.h>
+#include <linux/serdev.h>
 #include <linux/can.h>
 #include <linux/can/dev.h>
 #include <linux/can/skb.h>
@@ -80,8 +83,13 @@ MODULE_AUTHOR("Dario Binacchi <dario.binacchi@amarulasolutions.com>");
 struct slcan {
 	struct can_priv         can;
 
-	/* Various fields. */
+	/* Lower layer device */
 	struct tty_struct	*tty;		/* ptr to TTY structure	     */
+	struct serdev_device	*sdev;
+
+	int (*write)(struct slcan *sl, const unsigned char *buf, size_t count);
+
+	/* Various fields. */
 	struct net_device	*dev;		/* easy for intr handling    */
 	spinlock_t		lock;
 	struct work_struct	tx_work;	/* Flushes transmit buffer   */
@@ -525,16 +533,7 @@ static void slcan_encaps(struct slcan *sl, struct can_frame *cf)
 
 	*pos++ = '\r';
 
-	/* Order of next two lines is *very* important.
-	 * When we are sending a little amount of data,
-	 * the transfer may be completed inside the ops->write()
-	 * routine, because it's running with interrupts enabled.
-	 * In this case we *never* got WRITE_WAKEUP event,
-	 * if we did not request it before write operation.
-	 *       14 Oct 1994  Dmitry Gorodchanin.
-	 */
-	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
-	actual = sl->tty->ops->write(sl->tty, sl->xbuff, pos - sl->xbuff);
+	actual = sl->write(sl, sl->xbuff, pos - sl->xbuff);
 	sl->xleft = (pos - sl->xbuff) - actual;
 	sl->xhead = sl->xbuff + actual;
 }
@@ -570,22 +569,10 @@ static void slcan_transmit(struct work_struct *work)
 		return;
 	}
 
-	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
-	actual = sl->tty->ops->write(sl->tty, sl->xhead, sl->xleft);
+	actual = sl->write(sl, sl->xhead, sl->xleft);
 	sl->xleft -= actual;
 	sl->xhead += actual;
 	spin_unlock_bh(&sl->lock);
-}
-
-/* Called by the driver when there's room for more data.
- * Schedule the transmit.
- */
-static void slcan_tty_write_wakeup(struct tty_struct *tty)
-{
-	struct slcan *sl = tty->disc_data;
-
-	clear_bit(TTY_DO_WRITE_WAKEUP, &tty->flags);
-	schedule_work(&sl->tx_work);
 }
 
 /* Send a can_frame to a TTY queue. */
@@ -625,8 +612,7 @@ static int slcan_transmit_cmd(struct slcan *sl, const unsigned char *cmd)
 
 	spin_lock(&sl->lock);
 	n = scnprintf(sl->xbuff, sizeof(sl->xbuff), "%s", cmd);
-	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
-	actual = sl->tty->ops->write(sl->tty, sl->xbuff, n);
+	actual = sl->write(sl, sl->xbuff, n);
 	sl->xleft = n - actual;
 	sl->xhead = sl->xbuff + actual;
 	set_bit(SLF_XCMD, &sl->flags);
@@ -659,7 +645,8 @@ static int slcan_netdev_close(struct net_device *dev)
 	}
 
 	/* TTY discipline is running. */
-	clear_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
+	if (sl->tty)
+		clear_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
 	flush_work(&sl->tx_work);
 
 	netif_stop_queue(dev);
@@ -754,22 +741,9 @@ static const struct net_device_ops slcan_netdev_ops = {
 	.ndo_change_mtu         = can_change_mtu,
 };
 
-/******************************************
- *  Routines looking at TTY side.
- ******************************************/
-
-/* Handle the 'receiver data ready' interrupt.
- * This function is called by the 'tty_io' module in the kernel when
- * a block of SLCAN data has been received, which can now be decapsulated
- * and sent on to some IP layer for further processing. This will not
- * be re-entered while running but other ldisc functions may be called
- * in parallel
- */
-static void slcan_tty_receive_buf(struct tty_struct *tty, const u8 *cp,
+static void slcan_receive_buf(struct slcan *sl, const u8 *cp,
 			      const u8 *fp, size_t count)
 {
-	struct slcan *sl = tty->disc_data;
-
 	if (!netif_running(sl->dev))
 		return;
 
@@ -785,32 +759,17 @@ static void slcan_tty_receive_buf(struct tty_struct *tty, const u8 *cp,
 	}
 }
 
-/* Open the high-level part of the SLCAN channel.
- * This function is called by the TTY module when the
- * SLCAN line discipline is called for.
- *
- * Called in process context serialized from other ldisc calls.
- */
-static int slcan_tty_open(struct tty_struct *tty)
+static struct slcan *slcan_create(void)
 {
 	struct net_device *dev;
 	struct slcan *sl;
-	int err;
-
-	if (!capable(CAP_NET_ADMIN))
-		return -EPERM;
-
-	if (!tty->ops->write)
-		return -EOPNOTSUPP;
 
 	dev = alloc_candev(sizeof(*sl), 1);
 	if (!dev)
-		return -ENFILE;
+		return ERR_PTR(-ENOMEM);
 
 	sl = netdev_priv(dev);
 
-	/* Configure TTY interface */
-	tty->receive_room = 65536; /* We don't flow control */
 	sl->rcount = 0;
 	sl->xleft = 0;
 	spin_lock_init(&sl->lock);
@@ -827,9 +786,13 @@ static int slcan_tty_open(struct tty_struct *tty)
 	dev->netdev_ops = &slcan_netdev_ops;
 	dev->ethtool_ops = &slcan_ethtool_ops;
 
-	/* Mark ldisc channel as alive */
-	sl->tty = tty;
-	tty->disc_data = sl;
+	return sl;
+}
+
+static int slcan_register(struct slcan *sl)
+{
+	struct net_device *dev = sl->dev;
+	int err;
 
 	err = register_candev(dev);
 	if (err) {
@@ -838,7 +801,65 @@ static int slcan_tty_open(struct tty_struct *tty)
 		return err;
 	}
 
-	netdev_info(dev, "slcan on %s.\n", tty->name);
+	return 0;
+}
+
+#ifdef CONFIG_CAN_SLCAN_LDISC
+
+/******************************************
+ *  Routines looking at TTY side.
+ ******************************************/
+
+static int slcan_tty_write(struct slcan *sl, const unsigned char *buf,
+			   size_t count)
+{
+	/* Order of next two lines is *very* important.
+	 * When we are sending a little amount of data,
+	 * the transfer may be completed inside the ops->write()
+	 * routine, because it's running with interrupts enabled.
+	 * In this case we *never* got WRITE_WAKEUP event,
+	 * if we did not request it before write operation.
+	 *       14 Oct 1994  Dmitry Gorodchanin.
+	 */
+	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
+	return sl->tty->ops->write(sl->tty, buf, count);
+}
+
+/* Open the high-level part of the SLCAN channel.
+ * This function is called by the TTY module when the
+ * SLCAN line discipline is called for.
+ *
+ * Called in process context serialized from other ldisc calls.
+ */
+static int slcan_tty_open(struct tty_struct *tty)
+{
+	struct slcan *sl;
+	int err;
+
+	if (!capable(CAP_NET_ADMIN))
+		return -EPERM;
+
+	if (!tty->ops->write)
+		return -EOPNOTSUPP;
+
+	/* Configure TTY interface */
+	tty->receive_room = 65536; /* We don't flow control */
+
+	sl = slcan_create();
+	if (IS_ERR(sl))
+		return PTR_ERR(sl);
+
+	/* Mark ldisc channel as alive */
+	sl->write = slcan_tty_write;
+	sl->tty = tty;
+	tty->disc_data = sl;
+
+	err = slcan_register(sl);
+	if (err)
+		return err;
+
+	netdev_info(sl->dev, "slcan on %s.\n", tty->name);
+
 	/* TTY layer expects 0 on success */
 	return 0;
 }
@@ -894,6 +915,30 @@ static int slcan_tty_ioctl(struct tty_struct *tty, unsigned int cmd,
 	}
 }
 
+/* Handle the 'receiver data ready' interrupt.
+ * This function is called by the 'tty_io' module in the kernel when
+ * a block of SLCAN data has been received, which can now be decapsulated
+ * and sent on to some IP layer for further processing. This will not
+ * be re-entered while running but other ldisc functions may be called
+ * in parallel
+ */
+static void slcan_tty_receive_buf(struct tty_struct *tty, const u8 *cp,
+				  const u8 *fp, size_t count)
+{
+	slcan_receive_buf(tty->disc_data, cp, fp, count);
+}
+
+/* Called by the driver when there's room for more data.
+ * Schedule the transmit.
+ */
+static void slcan_tty_write_wakeup(struct tty_struct *tty)
+{
+	struct slcan *sl = tty->disc_data;
+
+	if (test_and_clear_bit(TTY_DO_WRITE_WAKEUP, &tty->flags))
+		schedule_work(&sl->tx_work);
+}
+
 static struct tty_ldisc_ops slcan_ldisc = {
 	.owner		= THIS_MODULE,
 	.num		= N_SLCAN,
@@ -905,26 +950,147 @@ static struct tty_ldisc_ops slcan_ldisc = {
 	.write_wakeup	= slcan_tty_write_wakeup,
 };
 
+#endif	/* CONFIG_CAN_SLCAN_LDISC */
+
+#ifdef CONFIG_CAN_SLCAN_SERDEV
+
+static size_t slcan_serdev_receive_buf(struct serdev_device *sdev,
+				       const u8 *cp, size_t count)
+{
+	struct slcan *sl = serdev_device_get_drvdata(sdev);
+
+	slcan_receive_buf(sl, cp, NULL, count);
+
+	return count;
+}
+
+static void slcan_serdev_write_wakeup(struct serdev_device *sdev)
+{
+	struct slcan *sl = serdev_device_get_drvdata(sdev);
+
+	schedule_work(&sl->tx_work);
+}
+
+static const struct serdev_device_ops slcan_serdev_ops = {
+	.receive_buf	= slcan_serdev_receive_buf,
+	.write_wakeup	= slcan_serdev_write_wakeup,
+};
+
+static int slcan_serdev_write(struct slcan *sl, const unsigned char *buf,
+			    size_t count)
+{
+	return serdev_device_write_buf(sl->sdev, buf, count);
+}
+
+static int slcan_serdev_probe(struct serdev_device *sdev)
+{
+	struct device *dev = &sdev->dev;
+	struct slcan *sl;
+	u32 rate;
+	bool flow;
+	bool erst;
+	int err;
+
+	if (device_property_read_u32(dev, "current-speed", &rate)) {
+		dev_err(dev, "current-speed not provided\n");
+		return -EINVAL;
+	}
+
+	flow = device_property_read_bool(dev, "flow-control");
+	erst = device_property_read_bool(dev, "err-rst-on-open");
+
+	sl = slcan_create();
+	if (IS_ERR(sl))
+		return PTR_ERR(sl);
+
+	serdev_device_set_drvdata(sdev, sl);
+	serdev_device_set_client_ops(sdev, &slcan_serdev_ops);
+	SET_NETDEV_DEV(sl->dev, dev);
+
+	sl->sdev = sdev;
+	sl->write = slcan_serdev_write;
+
+	if (erst)
+		set_bit(CF_ERR_RST, &sl->cmd_flags);
+
+	err = devm_serdev_device_open(dev, sdev);
+	if (err)
+		return err;
+
+	serdev_device_set_baudrate(sdev, rate);
+	serdev_device_set_flow_control(sdev, flow);
+
+	err = slcan_register(sl);
+	if (err)
+		return err;
+
+	return 0;
+}
+
+static void slcan_serdev_remove(struct serdev_device *sdev)
+{
+	struct slcan *sl = serdev_device_get_drvdata(sdev);
+
+	unregister_candev(sl->dev);
+	flush_work(&sl->tx_work);
+	free_candev(sl->dev);
+}
+
+static const struct of_device_id slcan_dt_ids[] = {
+	{ .compatible = "slcan" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, slcan_dt_ids);
+
+static struct serdev_device_driver slcan_serdev_driver = {
+	.driver	= {
+		.name		= "slcan",
+		.of_match_table	= slcan_dt_ids,
+	},
+	.probe	= slcan_serdev_probe,
+	.remove	= slcan_serdev_remove,
+};
+
+#endif	/* CONFIG_CAN_SLCAN_SERDEV */
+
 static int __init slcan_init(void)
 {
 	int status;
 
 	pr_info("serial line CAN interface driver\n");
 
+#ifdef CONFIG_CAN_SLCAN_LDISC
 	/* Fill in our line protocol discipline, and register it */
 	status = tty_register_ldisc(&slcan_ldisc);
-	if (status)
+	if (status) {
 		pr_err("can't register line discipline\n");
+		return status;
+	}
+#endif
 
-	return status;
+#ifdef CONFIG_CAN_SLCAN_SERDEV
+	status = serdev_device_driver_register(&slcan_serdev_driver);
+	if (status) {
+		pr_err("can't register serdev driver\n");
+		return status;
+	}
+#endif
+
+	return 0;
 }
 
 static void __exit slcan_exit(void)
 {
+#ifdef CONFIG_CAN_SLCAN_LDISC
 	/* This will only be called when all channels have been closed by
 	 * userspace - tty_ldisc.c takes care of the module's refcount.
 	 */
 	tty_unregister_ldisc(&slcan_ldisc);
+#endif
+
+#ifdef CONFIG_CAN_SLCAN_SERDEV
+	serdev_device_driver_unregister(&slcan_serdev_driver);
+#endif
 }
 
 module_init(slcan_init);
