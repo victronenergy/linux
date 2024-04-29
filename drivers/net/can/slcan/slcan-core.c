@@ -603,10 +603,6 @@ static netdev_tx_t slcan_netdev_xmit(struct sk_buff *skb,
 		netdev_warn(dev, "xmit: iface is down\n");
 		goto out;
 	}
-	if (!sl->tty) {
-		spin_unlock(&sl->lock);
-		goto out;
-	}
 
 	netif_stop_queue(sl->dev);
 	slcan_encaps(sl, (struct can_frame *)skb->data); /* encaps & send */
@@ -628,11 +624,6 @@ static int slcan_transmit_cmd(struct slcan *sl, const unsigned char *cmd)
 	int ret, actual, n;
 
 	spin_lock(&sl->lock);
-	if (!sl->tty) {
-		spin_unlock(&sl->lock);
-		return -ENODEV;
-	}
-
 	n = scnprintf(sl->xbuff, sizeof(sl->xbuff), "%s", cmd);
 	set_bit(TTY_DO_WRITE_WAKEUP, &sl->tty->flags);
 	actual = sl->tty->ops->write(sl->tty, sl->xbuff, n);
