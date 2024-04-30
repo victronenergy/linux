@@ -66,6 +66,13 @@
 	slcan: usb-serial@1 {
 		compatible = "usb403,6015";
 		reg = <1>;
+
+		can {
+			compatible = "slcan";
+			current-speed = <1500000>;
+			flow-control;
+			err-rst-on-open;
+		};
 	};
 };
 
