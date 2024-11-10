@@ -189,6 +189,9 @@ config VENUS_MODULES
 	select NTFS3_FS
 	select NTFS3_LZX_XPRESS
 
+	# framebuffer
+	select FB_VIRTUAL
+
 	# input
 	select HID
 	select HIDRAW
