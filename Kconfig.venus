@@ -190,6 +190,7 @@ config VENUS_MODULES
 	select NTFS3_LZX_XPRESS
 
 	# framebuffer
+	select FB
 	select FB_VIRTUAL
 
 	# input
