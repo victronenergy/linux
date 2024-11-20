@@ -324,6 +324,7 @@ mcp251xfd_regmap_crc_read(void *context,
 	mcp251xfd_spi_cmd_read_crc(&buf_tx->cmd, reg, val_len);
 
 	for (i = 0; i < MCP251XFD_READ_CRC_RETRIES_MAX; i++) {
+		priv->spi_tranfers++;
 		err = mcp251xfd_regmap_crc_read_one(priv, &msg, val_len);
 		if (!err)
 			goto out;
@@ -383,6 +384,7 @@ mcp251xfd_regmap_crc_read(void *context,
 			goto out;
 		}
 
+		priv->spi_crc_retries++;
 		netdev_info(priv->ndev,
 			    "CRC read error at address 0x%04x (length=%zd, data=%*ph, CRC=0x%04x) retrying.\n",
 			    reg, val_len, (int)val_len, buf_rx->data,
@@ -390,6 +392,7 @@ mcp251xfd_regmap_crc_read(void *context,
 	}
 
 	if (err) {
+		priv->spi_crc_errors++;
 		netdev_err(priv->ndev,
 			   "CRC read error at address 0x%04x (length=%zd, data=%*ph, CRC=0x%04x).\n",
 			   reg, val_len, (int)val_len, buf_rx->data,
