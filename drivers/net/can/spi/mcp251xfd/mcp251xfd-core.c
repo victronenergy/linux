@@ -2278,6 +2278,7 @@ static irqreturn_t mcp251xfd_irq(int irq, void *dev_id)
 	} while (1);
 
  out_fail:
+	priv->failed = true;
 	netdev_err(priv->ndev, "IRQ handler returned %d (intf=0x%08x).\n",
 		   err, priv->regs_status.intf);
 	mcp251xfd_chip_interrupts_disable(priv);
@@ -2468,6 +2469,11 @@ static int mcp251xfd_open(struct net_device *ndev)
 	struct mcp251xfd_priv *priv = netdev_priv(ndev);
 	const struct spi_device *spi = priv->spi;
 	int err;
+
+	priv->spi_tranfers = 0;
+	priv->spi_crc_retries = 0;
+	priv->spi_crc_errors = 0;
+	priv->failed = false;
 
 	err = pm_runtime_get_sync(ndev->dev.parent);
 	if (err < 0) {
@@ -2817,6 +2823,39 @@ static const struct spi_device_id mcp251xfd_id_table[] = {
 };
 MODULE_DEVICE_TABLE(spi, mcp251xfd_id_table);
 
+static ssize_t mcp251x_get_spi_stats(struct device *dev,
+							struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct mcp251xfd_priv *priv = netdev_priv(ndev);
+
+	return sysfs_emit(buf, "transfers: %llu\nretries: %u\nerrors: %u\n",
+							priv->spi_tranfers, priv->spi_crc_retries,
+							priv->spi_crc_errors);
+}
+
+static ssize_t mcp251x_get_failed(struct device *dev,
+							struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct mcp251xfd_priv *priv = netdev_priv(ndev);
+
+	return sysfs_emit(buf, "%d\n", priv->failed);
+}
+
+DEVICE_ATTR(spi_stats, 0444, mcp251x_get_spi_stats, NULL);
+DEVICE_ATTR(failed, 0444, mcp251x_get_failed, NULL);
+
+static struct attribute *mcp251x_attrs[] = {
+	&dev_attr_spi_stats.attr,
+	&dev_attr_failed.attr,
+	NULL
+};
+
+static const struct attribute_group mcp251x_group = {
+	.attrs = mcp251x_attrs,
+};
+
 static int mcp251xfd_probe(struct spi_device *spi)
 {
 	const void *match;
@@ -2888,6 +2927,8 @@ static int mcp251xfd_probe(struct spi_device *spi)
 	ndev->netdev_ops = &mcp251xfd_netdev_ops;
 	ndev->irq = spi->irq;
 	ndev->flags |= IFF_ECHO;
+	/* setup device-specific sysfs attributes */
+	ndev->sysfs_groups[0] = &mcp251x_group;
 
 	priv = netdev_priv(ndev);
 	spi_set_drvdata(spi, priv);
