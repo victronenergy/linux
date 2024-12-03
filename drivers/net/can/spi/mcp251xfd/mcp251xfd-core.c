@@ -207,6 +207,25 @@ static int mcp251xfd_clks_and_vdd_disable(const struct mcp251xfd_priv *priv)
 	return 0;
 }
 
+static void mcp251xfd_retry_later(struct mcp251xfd_priv *priv,
+				  const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	if (priv->can.state == CAN_STATE_BUS_OFF)
+		return;
+
+	va_start(args, fmt);
+	vaf.fmt = fmt;
+	vaf.va = &args;
+	netdev_info(priv->ndev, "retrying later: %pV", &vaf);
+	va_end(args);
+
+	priv->failed = true;
+	can_bus_off(priv->ndev);
+}
+
 static inline bool mcp251xfd_reg_invalid(u32 reg)
 {
 	return reg == 0x0 || reg == 0xffffffff;
@@ -741,15 +760,20 @@ static int mcp251xfd_chip_interrupts_disable(const struct mcp251xfd_priv *priv)
 	return regmap_write(priv->map_reg, MCP251XFD_REG_CRC, 0);
 }
 
+static void __mcp251xfd_chip_stop(struct mcp251xfd_priv *priv)
+{
+	mcp251xfd_chip_interrupts_disable(priv);
+	mcp251xfd_chip_rx_int_disable(priv);
+	mcp251xfd_timestamp_stop(priv);
+	mcp251xfd_chip_sleep(priv);
+}
+
 static void mcp251xfd_chip_stop(struct mcp251xfd_priv *priv,
 				const enum can_state state)
 {
 	priv->can.state = state;
 
-	mcp251xfd_chip_interrupts_disable(priv);
-	mcp251xfd_chip_rx_int_disable(priv);
-	mcp251xfd_timestamp_stop(priv);
-	mcp251xfd_chip_sleep(priv);
+	__mcp251xfd_chip_stop(priv);
 }
 
 static int mcp251xfd_chip_start(struct mcp251xfd_priv *priv)
@@ -813,12 +837,15 @@ static int mcp251xfd_set_mode(struct net_device *ndev, enum can_mode mode)
 	switch (mode) {
 	case CAN_MODE_START:
 		err = mcp251xfd_chip_start(priv);
-		if (err)
+		if (err) {
+			mcp251xfd_retry_later(priv, "mcp251xfd_set_mode failed (%d)\n", err);
 			return err;
+		}
 
 		err = mcp251xfd_chip_interrupts_enable(priv);
 		if (err) {
-			mcp251xfd_chip_stop(priv, CAN_STATE_STOPPED);
+			__mcp251xfd_chip_stop(priv);
+			mcp251xfd_retry_later(priv, "mcp251xfd_set_mode interrupts_enable failed (%d)\n", err);
 			return err;
 		}
 
@@ -1585,6 +1612,12 @@ static irqreturn_t mcp251xfd_irq(int irq, void *dev_id)
 	} while (1);
 
 out_fail:
+	if (err == -EBADMSG) {
+		__mcp251xfd_chip_stop(priv);
+		mcp251xfd_retry_later(priv, "excessive CRC errors in interrupt\n");
+		return handled;
+	}
+
 	can_rx_offload_threaded_irq_finish(&priv->offload);
 
 	netdev_err(priv->ndev, "IRQ handler returned %d (intf=0x%08x).\n",
@@ -1592,8 +1625,6 @@ out_fail:
 	mcp251xfd_dump(priv);
 	mcp251xfd_chip_interrupts_disable(priv);
 	mcp251xfd_timestamp_stop(priv);
-
-	priv->failed = true;
 
 	return handled;
 }
@@ -1628,8 +1659,12 @@ static int mcp251xfd_open(struct net_device *ndev)
 	mcp251xfd_timestamp_init(priv);
 
 	err = mcp251xfd_chip_start(priv);
-	if (err)
-		goto out_transceiver_disable;
+	if (err) {
+		// By marking the bus as off mcp251xfd_set_mode will
+		// be called to call mcp251xfd_chip_start again.
+		mcp251xfd_retry_later(priv, "mcp251xfd_open: chip_start failed (%d)\n", err);
+		// goto out_transceiver_disable;
+	}
 
 	clear_bit(MCP251XFD_FLAGS_DOWN, priv->flags);
 	can_rx_offload_enable(&priv->offload);
@@ -1650,21 +1685,23 @@ static int mcp251xfd_open(struct net_device *ndev)
 		goto out_destroy_workqueue;
 
 	err = mcp251xfd_chip_interrupts_enable(priv);
-	if (err)
-		goto out_free_irq;
+	if (err) {
+		mcp251xfd_retry_later(priv, "mcp251xfd_open: interrupts_enable failed (%d)\n", err);
+		// goto out_free_irq;
+	}
 
 	netif_start_queue(ndev);
 
 	return 0;
 
-out_free_irq:
-	free_irq(spi->irq, priv);
+// out_free_irq:
+// 	free_irq(spi->irq, priv);
 out_destroy_workqueue:
 	destroy_workqueue(priv->wq);
 out_can_rx_offload_disable:
 	can_rx_offload_disable(&priv->offload);
 	set_bit(MCP251XFD_FLAGS_DOWN, priv->flags);
-out_transceiver_disable:
+// out_transceiver_disable:
 	mcp251xfd_transceiver_disable(priv);
 out_mcp251xfd_ring_free:
 	mcp251xfd_ring_free(priv);
