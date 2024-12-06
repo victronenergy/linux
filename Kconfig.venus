@@ -244,6 +244,7 @@ config VENUS_MODULES
 	select CAN_PEAK_USB
 	select CAN_SLCAN
 	select CAN_VCAN
+	select CAN_GW
 
 	# bluetooth
 	select BT
