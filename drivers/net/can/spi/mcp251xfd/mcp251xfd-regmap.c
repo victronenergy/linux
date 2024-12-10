@@ -291,6 +291,7 @@ mcp251xfd_regmap_crc_read(void *context,
 	struct spi_message msg;
 	u16 reg = *(u16 *)reg_p;
 	int i, err;
+	_Bool retry = false;
 
 	BUILD_BUG_ON(sizeof(buf_rx->cmd) != sizeof(__be16) + sizeof(u8));
 	BUILD_BUG_ON(sizeof(buf_tx->cmd) != sizeof(__be16) + sizeof(u8));
@@ -326,8 +327,16 @@ mcp251xfd_regmap_crc_read(void *context,
 	for (i = 0; i < MCP251XFD_READ_CRC_RETRIES_MAX; i++) {
 		priv->spi_tranfers++;
 		err = mcp251xfd_regmap_crc_read_one(priv, &msg, val_len);
-		if (!err)
+		if (!err) {
+			if (retry && priv->show_crc_errors) {
+				netdev_info(priv->ndev,
+					"Data should be at address 0x%04x, cmd 0x%04x (length=%zd, data=%*ph, CRC=0x%04x).\n",
+					reg, (unsigned int) buf_tx->cmd.cmd, val_len, (int)val_len, buf_rx->data,
+					get_unaligned_be16(buf_rx->data + val_len));
+			}
 			goto out;
+		}
+
 		if (err != -EBADMSG)
 			return err;
 
@@ -385,15 +394,18 @@ mcp251xfd_regmap_crc_read(void *context,
 		}
 
 		priv->spi_crc_retries++;
-		netdev_info(priv->ndev,
-			    "CRC read error at address 0x%04x (length=%zd, data=%*ph, CRC=0x%04x) retrying.\n",
-			    reg, val_len, (int)val_len, buf_rx->data,
+		retry = true;
+		if (priv->show_crc_errors)
+			netdev_info(priv->ndev,
+			    "CRC read error at address 0x%04x, cmd 0x%04x (length=%zd, data=%*ph, CRC=0x%04x) retrying.\n",
+			    reg, (unsigned int) buf_tx->cmd.cmd, val_len, (int)val_len, buf_rx->data,
 			    get_unaligned_be16(buf_rx->data + val_len));
 	}
 
 	if (err) {
 		priv->spi_crc_errors++;
-		netdev_err(priv->ndev,
+		if (priv->show_crc_errors)
+			netdev_err(priv->ndev,
 			   "CRC read error at address 0x%04x (length=%zd, data=%*ph, CRC=0x%04x).\n",
 			   reg, val_len, (int)val_len, buf_rx->data,
 			   get_unaligned_be16(buf_rx->data + val_len));
