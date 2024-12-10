@@ -675,6 +675,7 @@ struct mcp251xfd_priv {
 	u64 spi_tranfers;
 	u32 spi_crc_retries;
 	u32 spi_crc_errors;
+	bool show_crc_errors;
 };
 
 #define MCP251XFD_IS(_model) \
