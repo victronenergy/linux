@@ -27,6 +27,10 @@
 
 #define DEVICE_NAME "mcp251xfd"
 
+static bool crc_errors;
+module_param(crc_errors, bool, 0644);
+MODULE_PARM_DESC(crc_errors, "print spi message when CRC is incorrect");
+
 static const struct mcp251xfd_devtype_data mcp251xfd_devtype_data_mcp2517fd = {
 	.quirks = MCP251XFD_QUIRK_MAB_NO_WARN | MCP251XFD_QUIRK_CRC_REG |
 		MCP251XFD_QUIRK_CRC_RX | MCP251XFD_QUIRK_CRC_TX |
@@ -2984,6 +2988,7 @@ static int mcp251xfd_probe(struct spi_device *spi)
 	priv->clk = clk;
 	priv->reg_vdd = reg_vdd;
 	priv->reg_xceiver = reg_xceiver;
+	priv->show_crc_errors = crc_errors;
 
 	match = device_get_match_data(&spi->dev);
 	if (match)
