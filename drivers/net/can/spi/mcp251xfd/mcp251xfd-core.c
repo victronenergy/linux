@@ -222,8 +222,26 @@ static void mcp251xfd_retry_later(struct mcp251xfd_priv *priv,
 	netdev_info(priv->ndev, "retrying later: %pV", &vaf);
 	va_end(args);
 
-	priv->failed = true;
+	priv->restarted = true;
 	can_bus_off(priv->ndev);
+
+	// If this is the 3rd time within a minute that the device needs to be restarted,
+	// report communication failure.
+	{
+		u32 now = (u32) ktime_get_seconds();
+
+		if (priv->last_retries[0] != 0 && priv->last_retries[1] != 0 &&
+			(priv->last_retries[0] - now) <= 60 &&
+			(priv->last_retries[1] - now) <= 60)
+		{
+			priv->failed = true;
+		}
+
+		if (priv->last_retries[1] < priv->last_retries[0])
+			priv->last_retries[1] = now;
+		else
+			priv->last_retries[0] = now;
+	}
 }
 
 static inline bool mcp251xfd_reg_invalid(u32 reg)
@@ -1638,6 +1656,7 @@ static int mcp251xfd_open(struct net_device *ndev)
 	priv->spi_tranfers = 0;
 	priv->spi_crc_retries = 0;
 	priv->spi_crc_errors = 0;
+	priv->restarted = false;
 	priv->failed = false;
 
 	err = open_candev(ndev);
@@ -2070,12 +2089,23 @@ static ssize_t mcp251x_get_failed(struct device *dev,
 	return sysfs_emit(buf, "%d\n", priv->failed);
 }
 
+static ssize_t mcp251x_get_restarted(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct net_device *ndev = to_net_dev(dev);
+	struct mcp251xfd_priv *priv = netdev_priv(ndev);
+
+	return sysfs_emit(buf, "%d\n", priv->restarted);
+}
+
 DEVICE_ATTR(spi_stats, 0444, mcp251x_get_spi_stats, NULL);
 DEVICE_ATTR(failed, 0444, mcp251x_get_failed, NULL);
+DEVICE_ATTR(restarted, 0444, mcp251x_get_restarted, NULL);
 
 static struct attribute *mcp251x_attrs[] = {
 	&dev_attr_spi_stats.attr,
 	&dev_attr_failed.attr,
+	&dev_attr_restarted.attr,
 	NULL
 };
 
