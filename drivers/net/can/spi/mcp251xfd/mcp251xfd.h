@@ -671,11 +671,13 @@ struct mcp251xfd_priv {
 	struct mcp251xfd_devtype_data devtype_data;
 	struct can_berr_counter bec;
 
+	_Bool restarted;
 	_Bool failed;
 	u64 spi_tranfers;
 	u32 spi_crc_retries;
 	u32 spi_crc_errors;
 	bool show_crc_errors;
+	u32 last_retries[2];
 };
 
 #define MCP251XFD_IS(_model) \
