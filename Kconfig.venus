@@ -37,6 +37,16 @@ config VENUS
 	select STACKPROTECTOR_STRONG
 	select STACKPROTECTOR_PER_TASK if SMP
 
+	# tailscale might use cgroups
+	select CGROUPS
+	select CGROUP_CPUACCT
+	select CGROUP_SCHED
+	select NET_SCHED
+	select NET_CLS_ACT
+	select NET_SCH_HTB
+	select NET_SCH_INGRESS
+	select CFS_BANDWIDTH
+
 	# system options
 	select VDSO
 	select ARM_ERRATA_430973
