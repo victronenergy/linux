@@ -1861,6 +1861,10 @@ static const struct file_operations iio_event_fileops = {
 	.release = iio_chrdev_release,
 };
 
+static const struct file_operations iio_null_fileops = {
+	.owner = THIS_MODULE,
+};
+
 static int iio_check_unique_scan_index(struct iio_dev *indio_dev)
 {
 	int i, j;
@@ -2071,11 +2075,11 @@ int __iio_device_register(struct iio_dev *indio_dev, struct module *this_mod)
 		cdev_init(&iio_dev_opaque->chrdev, &iio_buffer_fileops);
 	else if (iio_dev_opaque->event_interface)
 		cdev_init(&iio_dev_opaque->chrdev, &iio_event_fileops);
+	else
+		cdev_init(&iio_dev_opaque->chrdev, &iio_null_fileops);
 
-	if (iio_dev_opaque->attached_buffers_cnt || iio_dev_opaque->event_interface) {
-		indio_dev->dev.devt = MKDEV(MAJOR(iio_devt), iio_dev_opaque->id);
-		iio_dev_opaque->chrdev.owner = this_mod;
-	}
+	indio_dev->dev.devt = MKDEV(MAJOR(iio_devt), iio_dev_opaque->id);
+	iio_dev_opaque->chrdev.owner = this_mod;
 
 	/* assign device groups now; they should be all registered now */
 	indio_dev->dev.groups = iio_dev_opaque->groups;
