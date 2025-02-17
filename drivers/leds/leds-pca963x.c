@@ -103,6 +103,7 @@ struct pca963x_led {
 	int led_num; /* 0 .. 15 potentially */
 	u8 gdc;
 	u8 gfrq;
+	char name[8];
 };
 
 struct pca963x {
@@ -362,6 +363,39 @@ err:
 	return ret;
 }
 
+static int pca963x_register_leds_default(struct i2c_client *client,
+				 struct pca963x *chip)
+{
+	struct pca963x_chipdef *chipdef = chip->chipdef;
+	struct pca963x_led *led;
+	struct device *dev = &client->dev;
+	s32 mode2;
+	int i, ret;
+
+	chipdef->scaling = 1000;
+	mode2 = PCA963X_MODE2 | PCA963X_MODE2_OUTDRV | PCA963X_MODE2_INVRT;
+
+	ret = i2c_smbus_write_byte_data(client, PCA963X_MODE2, mode2);
+	if (ret < 0)
+		return ret;
+
+	for (i = 0; i < chipdef->n_leds; i++) {
+		led = &chip->leds[i];
+		led->led_num = i;
+		led->chip = chip;
+		led->led_cdev.brightness_set_blocking = pca963x_led_set;
+		snprintf(led->name, sizeof(led->name), "led%d", i);
+		led->led_cdev.name = led->name;
+
+		ret = devm_led_classdev_register(dev, &led->led_cdev);
+		if (ret) {
+			dev_err(dev, "Failed to register LED %d\n", i);
+			return ret;
+		}
+	}
+	return 0;
+}
+
 static const struct of_device_id of_pca963x_match[] = {
 	{ .compatible = "nxp,pca9632", },
 	{ .compatible = "nxp,pca9633", },
@@ -378,11 +412,16 @@ static int pca963x_probe(struct i2c_client *client,
 	struct pca963x_chipdef *chipdef;
 	struct pca963x *chip;
 	int i, count;
+	bool default_config;
 
 	chipdef = &pca963x_chipdefs[id->driver_data];
 
 	count = device_get_child_node_count(dev);
-	if (!count || count > chipdef->n_leds) {
+	if (!count) {
+		count = chipdef->n_leds;
+		default_config = true;
+		dev_warn(dev, "No LEDs defined, using default configuration with %d LEDs\n", count);
+	} else if (count > chipdef->n_leds) {
 		dev_err(dev, "Node %pfw must define between 1 and %d LEDs\n",
 			dev_fwnode(dev), chipdef->n_leds);
 		return -EINVAL;
@@ -405,7 +444,7 @@ static int pca963x_probe(struct i2c_client *client,
 	/* Disable LED all-call address, and power down initially */
 	i2c_smbus_write_byte_data(client, PCA963X_MODE1, BIT(4));
 
-	return pca963x_register_leds(client, chip);
+	return default_config ? pca963x_register_leds_default(client, chip) : pca963x_register_leds(client, chip);
 }
 
 static struct i2c_driver pca963x_driver = {
