@@ -300,6 +300,34 @@ static int pca963x_blink_set(struct led_classdev *led_cdev,
 	return 0;
 }
 
+static int pca963x_register_leds_default(struct i2c_client *client,
+				 struct pca963x *chip)
+{
+	struct pca963x_chipdef *chipdef = chip->chipdef;
+	struct pca963x_led *led;
+	struct device *dev = &client->dev;
+	char name[8];
+	int i, ret;
+
+	for (i = 0; i < chipdef->n_leds; i++) {
+		snprintf(name, sizeof(name), "led%d", i);
+
+		led = &chip->leds[i];
+		led->led_num = i;
+		led->chip = chip;
+		led->led_cdev.brightness_set_blocking = pca963x_led_set;
+		led->led_cdev.name = name;
+
+		ret = devm_led_classdev_register(dev, &led->led_cdev);
+		if (ret) {
+			dev_err(dev, "Failed to register LED %d\n", i);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static int pca963x_register_leds(struct i2c_client *client,
 				 struct pca963x *chip)
 {
@@ -375,6 +403,9 @@ static int pca963x_register_leds(struct i2c_client *client,
 		++led;
 	}
 
+	if (led == chip->leds)	/* no LEDs defined */
+		return pca963x_register_leds_default(client, chip);
+
 	return 0;
 err:
 	fwnode_handle_put(child);
@@ -427,7 +458,10 @@ static int pca963x_probe(struct i2c_client *client)
 	chipdef = &pca963x_chipdefs[id->driver_data];
 
 	count = device_get_child_node_count(dev);
-	if (!count || count > chipdef->n_leds) {
+	if (!count) {
+		count = chipdef->n_leds;
+		dev_info(dev, "No LEDs defined, using default configuration with %d LEDs\n", count);
+	} else if (count > chipdef->n_leds) {
 		dev_err(dev, "Node %pfw must define between 1 and %d LEDs\n",
 			dev_fwnode(dev), chipdef->n_leds);
 		return -EINVAL;
