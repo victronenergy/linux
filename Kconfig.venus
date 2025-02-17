@@ -135,6 +135,7 @@ config VENUS
 	select LEDS_TRIGGER_DEFAULT_ON
 	select LEDS_TRIGGER_TIMER
 	select LEDS_TRIGGER_SYNC_BLINK
+	select LEDS_PCA963X
 
 	# misc device options
 	select EEPROM_AT24
