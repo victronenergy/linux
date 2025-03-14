@@ -150,6 +150,7 @@ config VENUS
 	# misc device options
 	select EEPROM_AT24
 	select GPIO_SYSFS
+	select GPIO_PCA953X
 
 	# mmc
 	select MMC
