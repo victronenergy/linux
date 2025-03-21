@@ -31,6 +31,7 @@
 #include <linux/bitfield.h>
 #include <linux/byteorder/generic.h>
 #include <linux/cec.h>
+#include <linux/delay.h>
 #include <linux/hdmi.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
@@ -2167,11 +2168,8 @@ drm_do_probe_ddc_edid(void *data, u8 *buf, unsigned int block, size_t len)
 		 */
 		ret = i2c_transfer(adapter, &msgs[3 - xfers], xfers);
 
-		if (ret == -ENXIO) {
-			DRM_DEBUG_KMS("drm: skipping non-existent adapter %s\n",
-					adapter->name);
-			break;
-		}
+		if (ret == -ENXIO)
+			msleep(10);
 	} while (ret != xfers && --retries);
 
 	return ret == xfers ? 0 : -1;
