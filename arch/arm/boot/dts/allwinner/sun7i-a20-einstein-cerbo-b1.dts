@@ -108,7 +108,7 @@
 	status = "okay";
 
 	assigned-clocks = <&ccu CLK_SPI2>;
-	assigned-clock-rates = <600000000>;
+	assigned-clock-rates = <300000000>;
 
 	cs-gpios = <&pio 1 14 GPIO_ACTIVE_LOW>;		/* PB14 */
 
