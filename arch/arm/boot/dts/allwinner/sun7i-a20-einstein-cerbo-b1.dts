@@ -115,7 +115,7 @@
 	can1: can@0 {
 		compatible = "microchip,mcp2518fd";
 		reg = <0>;
-		spi-max-frequency = <15000000>;
+		spi-max-frequency = <20000000>;
 		clocks = <&can_clk>;
 		interrupt-parent = <&pio>;
 		interrupts = <8 13 IRQ_TYPE_LEVEL_LOW>;	/* PI13 */
