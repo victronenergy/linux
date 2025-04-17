@@ -99,6 +99,11 @@ config VENUS
 	select PACKET
 	select UNIX
 
+	# advanced networking (initially only needed by tailscale)
+	select IP_ADVANCED_ROUTER
+	select IP_MULTIPLE_TABLES
+	select IPV6_MULTIPLE_TABLES
+
 	# QoS
 	select NET_SCHED
 	select NET_CLS_ACT
@@ -240,6 +245,7 @@ config VENUS_MODULES
 	select IP_NF_TARGET_REJECT
 	select IP6_NF_IPTABLES
 	select IP6_NF_FILTER
+	select IP6_NF_MANGLE
 	select IP6_NF_NAT
 	select IP6_NF_TARGET_REJECT
 
