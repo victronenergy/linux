@@ -18,3 +18,4 @@ obj-$(CONFIG_LEDS_TRIGGER_PATTERN)	+= ledtrig-pattern.o
 obj-$(CONFIG_LEDS_TRIGGER_TTY)		+= ledtrig-tty.o
 obj-$(CONFIG_LEDS_TRIGGER_INPUT_EVENTS)	+= ledtrig-input-events.o
 obj-$(CONFIG_LEDS_TRIGGER_SYNC_BLINK)	+= ledtrig-syncblink.o
+obj-$(CONFIG_LEDS_TRIGGER_ACTPWR)	+= ledtrig-actpwr.o
