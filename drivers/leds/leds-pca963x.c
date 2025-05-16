@@ -61,7 +61,7 @@ struct pca963x_chipdef {
 	int			n_leds;
 };
 
-static struct pca963x_chipdef pca963x_chipdefs[] = {
+static const struct pca963x_chipdef pca963x_chipdefs[] = {
 	[pca9633] = {
 		.grppwm		= 0x6,
 		.grpfreq	= 0x7,
@@ -107,7 +107,7 @@ struct pca963x_led {
 };
 
 struct pca963x {
-	struct pca963x_chipdef *chipdef;
+	const struct pca963x_chipdef *chipdef;
 	struct mutex mutex;
 	struct i2c_client *client;
 	unsigned long leds_on;
@@ -119,7 +119,7 @@ static int pca963x_brightness(struct pca963x_led *led,
 			      enum led_brightness brightness)
 {
 	struct i2c_client *client = led->chip->client;
-	struct pca963x_chipdef *chipdef = led->chip->chipdef;
+	const struct pca963x_chipdef *chipdef = led->chip->chipdef;
 	u8 ledout_addr, ledout, mask, val;
 	int shift;
 	int ret;
@@ -170,7 +170,7 @@ static int pca963x_brightness(struct pca963x_led *led,
 static void pca963x_blink(struct pca963x_led *led)
 {
 	struct i2c_client *client = led->chip->client;
-	struct pca963x_chipdef *chipdef = led->chip->chipdef;
+	const struct pca963x_chipdef *chipdef = led->chip->chipdef;
 	u8 ledout_addr, ledout, mask, val, mode2;
 	int shift;
 
@@ -303,7 +303,7 @@ static int pca963x_blink_set(struct led_classdev *led_cdev,
 static int pca963x_register_leds(struct i2c_client *client,
 				 struct pca963x *chip)
 {
-	struct pca963x_chipdef *chipdef = chip->chipdef;
+	const struct pca963x_chipdef *chipdef = chip->chipdef;
 	struct pca963x_led *led = chip->leds;
 	struct device *dev = &client->dev;
 	struct fwnode_handle *child;
@@ -420,7 +420,7 @@ static int pca963x_probe(struct i2c_client *client)
 {
 	const struct i2c_device_id *id = i2c_client_get_device_id(client);
 	struct device *dev = &client->dev;
-	struct pca963x_chipdef *chipdef;
+	const struct pca963x_chipdef *chipdef;
 	struct pca963x *chip;
 	int i, count;
 
