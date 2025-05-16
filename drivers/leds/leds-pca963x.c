@@ -362,6 +362,9 @@ static int pca963x_register_leds(struct i2c_client *client,
 	else
 		mode2 &= ~PCA963X_MODE2_INVRT;
 
+	if (!dev_fwnode(dev))
+		mode2 |= PCA963X_MODE2_OUTDRV | PCA963X_MODE2_INVRT;
+
 	ret = i2c_smbus_write_byte_data(client, PCA963X_MODE2, mode2);
 	if (ret < 0)
 		return ret;
