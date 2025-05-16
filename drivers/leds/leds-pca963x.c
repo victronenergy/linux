@@ -59,7 +59,6 @@ struct pca963x_chipdef {
 	u8			grpfreq;
 	u8			ledout_base;
 	int			n_leds;
-	unsigned int		scaling;
 };
 
 static struct pca963x_chipdef pca963x_chipdefs[] = {
@@ -112,6 +111,7 @@ struct pca963x {
 	struct mutex mutex;
 	struct i2c_client *client;
 	unsigned long leds_on;
+	unsigned int scaling;
 	struct pca963x_led leds[];
 };
 
@@ -240,7 +240,7 @@ unlock:
 static unsigned int pca963x_period_scale(struct pca963x_led *led,
 					 unsigned int val)
 {
-	unsigned int scaling = led->chip->chipdef->scaling;
+	unsigned int scaling = led->chip->scaling;
 
 	return scaling ? DIV_ROUND_CLOSEST(val * scaling, 1000) : val;
 }
@@ -313,8 +313,8 @@ static int pca963x_register_leds(struct i2c_client *client,
 	int ret;
 
 	if (device_property_read_u32(dev, "nxp,period-scale",
-				     &chipdef->scaling))
-		chipdef->scaling = 1000;
+				     &chip->scaling))
+		chip->scaling = 1000;
 
 	hw_blink = device_property_read_bool(dev, "nxp,hw-blink");
 
