@@ -306,11 +306,12 @@ static int pca963x_register_leds_default(struct i2c_client *client,
 	struct pca963x_chipdef *chipdef = chip->chipdef;
 	struct pca963x_led *led;
 	struct device *dev = &client->dev;
-	char name[8];
+	char name[32];
 	int i, ret;
 
 	for (i = 0; i < chipdef->n_leds; i++) {
-		snprintf(name, sizeof(name), "led%d", i);
+		snprintf(name, sizeof(name), "%s:%d:%.2x:%u",
+			 client->name, client->adapter->nr, client->addr, i);
 
 		led = &chip->leds[i];
 		led->led_num = i;
