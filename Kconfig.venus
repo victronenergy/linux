@@ -11,7 +11,7 @@ comment "Venus disallowed option(s) enabled"
 	depends on VENUS_BLOCKER
 
 config LOCALVERSION
-	default "-venus-3"
+	default "-venus-4"
 
 config VENUS
 	bool "Venus defaults"
