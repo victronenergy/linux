@@ -990,6 +990,7 @@ void mnt_options_changed(void)
 	touch_mnt_namespace(current->nsproxy->mnt_ns);
 	unlock_mount_hash();
 }
+EXPORT_SYMBOL(mnt_options_changed);
 
 /*
  * vfsmount lock must be held for write
