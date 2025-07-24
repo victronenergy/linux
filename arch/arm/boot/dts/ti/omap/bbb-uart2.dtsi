@@ -11,4 +11,6 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart2_pins>;
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
 };
