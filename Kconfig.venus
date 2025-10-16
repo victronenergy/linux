@@ -71,15 +71,15 @@ config VENUS
 	select CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	select CPUFREQ_DT
 	select CPU_IDLE
-	select ARM_CPUIDLE
+	select ARM_CPUIDLE if ARM
 
 	# crypto
-	select ARM_CRYPTO
-	select CRYPTO_SHA1_ARM_NEON
-	select CRYPTO_SHA256_ARM
-	select CRYPTO_AES_ARM
-	select CRYPTO_AES_ARM_BS
-	select CRYPTO_CRC32_ARM_CE
+	select ARM_CRYPTO if ARM
+	select CRYPTO_SHA1_ARM_NEON if ARM
+	select CRYPTO_SHA256_ARM if ARM
+	select CRYPTO_AES_ARM if ARM
+	select CRYPTO_AES_ARM_BS if ARM
+	select CRYPTO_CRC32_ARM_CE if ARM
 
 	# initrd
 	select BLK_DEV
