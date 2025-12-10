@@ -124,7 +124,7 @@
 	};
 
 	ext_rtc: rtc@68 {
-		compatible = "nxp,pcf8523";
+		compatible = "ti,bq32000";
 		status = "okay";
 		reg = <0x68>;
 	};
