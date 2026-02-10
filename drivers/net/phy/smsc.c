@@ -680,6 +680,9 @@ int smsc_phy_probe(struct phy_device *phydev)
 		return dev_err_probe(dev, PTR_ERR(refclk),
 				     "Failed to request clock\n");
 
+	if (refclk)
+		phy_reset_after_clk_enable(phydev);
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(smsc_phy_probe);
