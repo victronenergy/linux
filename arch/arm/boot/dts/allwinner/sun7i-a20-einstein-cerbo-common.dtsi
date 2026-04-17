@@ -37,6 +37,7 @@
 		button {
 			linux,code = <KEY_CONFIG>;
 			gpios = <&pio 7 8 GPIO_ACTIVE_LOW>;	/* PH8 */
+			debounce-interval = <60>;
 		};
 	};
 
