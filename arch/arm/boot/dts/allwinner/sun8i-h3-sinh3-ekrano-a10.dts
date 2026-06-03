@@ -1,0 +1,13 @@
+#include "sun8i-h3-sinh3-ekrano.dts"
+
+&temp_front {
+	compatible = "ti,tmp1075";
+};
+
+&temp_back {
+	compatible = "ti,tmp1075";
+};
+
+&ext_rtc {
+	compatible = "ti,bq32000";
+};
