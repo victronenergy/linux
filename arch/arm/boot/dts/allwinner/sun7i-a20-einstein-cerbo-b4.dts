@@ -1,0 +1,5 @@
+#include "sun7i-a20-einstein-cerbo-b1.dts"
+
+&rtc0 {
+	compatible = "ti,bq32000";
+};
