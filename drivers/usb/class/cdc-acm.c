@@ -2038,6 +2038,11 @@ static const struct usb_device_id acm_ids[] = {
 	.driver_info = IGNORE_DEVICE,
 	},
 
+	/* Exclude CH343 family */
+	{ .match_flags = USB_DEVICE_ID_MATCH_VENDOR, .idVendor = 0x1a86,
+	.driver_info = IGNORE_DEVICE,
+	},
+
 	/* CH343 supports CAP_BRK, but doesn't advertise it */
 	{ USB_DEVICE(0x1a86, 0x55d3), .driver_info = MISSING_CAP_BRK, },
 
