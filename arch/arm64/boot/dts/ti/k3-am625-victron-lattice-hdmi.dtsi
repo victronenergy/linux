@@ -1,0 +1,54 @@
+/ {
+	vdd_1v2: regulator-1v2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_1v2";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		vin-supply = <&vdd_3v3>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+};
+
+&main_pmx0 {
+	hdmi_pins: hdmi-pins {
+		pinctrl-single,pins = <
+			AM62X_IOPAD(0x0054, PIN_OUTPUT, 7)	  /* P21 */
+			AM62X_IOPAD(0x0094, PIN_INPUT, 7)	  /* N20 */
+		>;
+	};
+};
+
+&main_i2c0 {
+	hdmi: hdmi-bridge@3b {
+		compatible = "sil,sii9022";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hdmi_pins>;
+		reg = <0x3b>;
+		reset-gpios = <&main_gpio0 21 GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&main_gpio0>;
+		interrupts = <36 IRQ_TYPE_EDGE_FALLING>;
+		cvcc12-supply = <&vdd_1v2>;
+		iovcc-supply = <&vdd_3v3>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				hdmi_in: endpoint {
+					remote-endpoint = <&dss_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				hdmi_out: endpoint {
+				};
+			};
+		};
+	};
+};
