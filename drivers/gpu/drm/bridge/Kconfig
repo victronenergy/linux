@@ -373,6 +373,7 @@ config DRM_TI_TFP410
 	tristate "TI TFP410 DVI/HDMI bridge"
 	depends on OF
 	select DRM_KMS_HELPER
+	select REGMAP_I2C if I2C
 	help
 	  Texas Instruments TFP410 DVI/HDMI Transmitter driver
 
