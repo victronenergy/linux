@@ -4,12 +4,14 @@
  * Author: Jyri Sarha <jsarha@ti.com>
  */
 
+#include <linux/delay.h>
 #include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/media-bus-format.h>
 #include <linux/module.h>
 #include <linux/of_graph.h>
 #include <linux/platform_device.h>
+#include <linux/regmap.h>
 #include <linux/workqueue.h>
 
 #include <drm/drm_atomic_helper.h>
@@ -21,6 +23,44 @@
 
 #define HOTPLUG_DEBOUNCE_MS		1100
 
+#define TFP410_VEN_ID			0x00
+#define TFP410_DEV_ID			0x02
+#define TFP410_REV_ID			0x04
+
+#define TFP410_CTL1			0x08
+#define TFP410_CTL1_TDIS		BIT(6)
+#define TFP410_CTL1_VEN			BIT(5)
+#define TFP410_CTL1_HEN			BIT(4)
+#define TFP410_CTL1_DSEL		BIT(3)
+#define TFP410_CTL1_BSEL		BIT(2)
+#define TFP410_CTL1_EDGE		BIT(1)
+#define TFP410_CTL1_PD			BIT(0)
+
+#define TFP410_CTL2			0x09
+#define TFP410_CTL2_VLOW		BIT(7)
+#define TFP410_CTL2_MSEL_OFF		(0 << 4)
+#define TFP410_CTL2_MSEL_MDI		(1 << 4)
+#define TFP410_CTL2_MSEL_RSEN		(2 << 4)
+#define TFP410_CTL2_MSEL_HTPLG		(3 << 4)
+#define TFP410_CTL2_TSEL		BIT(3)
+#define TFP410_CTL2_RSEN		BIT(2)
+#define TFP410_CTL2_HTPLG		BIT(1)
+#define TFP410_CTL2_MDI			BIT(0)
+
+#define TFP410_CTL3			0x0a
+#define TFP410_CTL3_DK(n)		(((n) & 7) << 5)
+#define TFP410_CTL3_DKEN		BIT(4)
+#define TFP410_CTL3_CTL(n)		(((n) & 3) << 1)
+
+#define TFP410_CFG			0x0b
+#define TFP410_DE_DLY			0x32
+#define TFP410_DE_CTL			0x33
+#define TFP410_DE_TOP			0x34
+#define TFP410_DE_CNT			0x36
+#define TFP410_DE_LIN			0x38
+#define TFP410_H_RES			0x3a
+#define TFP410_V_RES			0x3c
+
 struct tfp410 {
 	struct drm_bridge	bridge;
 	struct drm_connector	connector;
@@ -28,11 +68,14 @@ struct tfp410 {
 	u32			bus_format;
 	struct delayed_work	hpd_work;
 	struct gpio_desc	*powerdown;
+	struct gpio_desc	*reset;
 
 	struct drm_bridge_timings timings;
 	struct drm_bridge	*next_bridge;
 
 	struct device *dev;
+	struct i2c_client	*i2c;
+	struct regmap		*regmap;
 };
 
 static inline struct tfp410 *
@@ -88,8 +131,15 @@ static enum drm_connector_status
 tfp410_connector_detect(struct drm_connector *connector, bool force)
 {
 	struct tfp410 *dvi = drm_connector_to_tfp410(connector);
+	unsigned int ctl2;
 
-	return drm_bridge_detect(dvi->next_bridge);
+	if (!dvi->i2c)
+		return drm_bridge_detect(dvi->next_bridge);
+
+	regmap_read(dvi->regmap, TFP410_CTL2, &ctl2);
+
+	return ctl2 & TFP410_CTL2_HTPLG ?
+		connector_status_connected : connector_status_disconnected;
 }
 
 static const struct drm_connector_funcs tfp410_con_funcs = {
@@ -119,6 +169,28 @@ static void tfp410_hpd_callback(void *arg, enum drm_connector_status status)
 			 msecs_to_jiffies(HOTPLUG_DEBOUNCE_MS));
 }
 
+static void tfp410_attach_plat(struct tfp410 *dvi)
+{
+	if (dvi->next_bridge->ops & DRM_BRIDGE_OP_DETECT)
+		dvi->connector.polled = DRM_CONNECTOR_POLL_HPD;
+	else
+		dvi->connector.polled = DRM_CONNECTOR_POLL_CONNECT | DRM_CONNECTOR_POLL_DISCONNECT;
+
+	if (dvi->next_bridge->ops & DRM_BRIDGE_OP_HPD) {
+		INIT_DELAYED_WORK(&dvi->hpd_work, tfp410_hpd_work_func);
+		drm_bridge_hpd_enable(dvi->next_bridge, tfp410_hpd_callback,
+				      dvi);
+	}
+}
+
+static void tfp410_attach_i2c(struct tfp410 *dvi)
+{
+	if (dvi->i2c->irq > 0)
+		dvi->connector.polled = DRM_CONNECTOR_POLL_HPD;
+	else
+		dvi->connector.polled = DRM_CONNECTOR_POLL_CONNECT;
+}
+
 static int tfp410_attach(struct drm_bridge *bridge,
 			 enum drm_bridge_attach_flags flags)
 {
@@ -133,16 +205,10 @@ static int tfp410_attach(struct drm_bridge *bridge,
 	if (flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR)
 		return 0;
 
-	if (dvi->next_bridge->ops & DRM_BRIDGE_OP_DETECT)
-		dvi->connector.polled = DRM_CONNECTOR_POLL_HPD;
+	if (dvi->i2c)
+		tfp410_attach_i2c(dvi);
 	else
-		dvi->connector.polled = DRM_CONNECTOR_POLL_CONNECT | DRM_CONNECTOR_POLL_DISCONNECT;
-
-	if (dvi->next_bridge->ops & DRM_BRIDGE_OP_HPD) {
-		INIT_DELAYED_WORK(&dvi->hpd_work, tfp410_hpd_work_func);
-		drm_bridge_hpd_enable(dvi->next_bridge, tfp410_hpd_callback,
-				      dvi);
-	}
+		tfp410_attach_plat(dvi);
 
 	drm_connector_helper_add(&dvi->connector,
 				 &tfp410_con_helper_funcs);
@@ -168,6 +234,9 @@ static void tfp410_detach(struct drm_bridge *bridge)
 {
 	struct tfp410 *dvi = drm_bridge_to_tfp410(bridge);
 
+	if (dvi->i2c)
+		return;
+
 	if (dvi->connector.dev && dvi->next_bridge->ops & DRM_BRIDGE_OP_HPD) {
 		drm_bridge_hpd_disable(dvi->next_bridge);
 		cancel_delayed_work_sync(&dvi->hpd_work);
@@ -178,14 +247,21 @@ static void tfp410_enable(struct drm_bridge *bridge)
 {
 	struct tfp410 *dvi = drm_bridge_to_tfp410(bridge);
 
-	gpiod_set_value_cansleep(dvi->powerdown, 0);
+	if (dvi->i2c)
+		regmap_update_bits(dvi->regmap, TFP410_CTL1, TFP410_CTL1_PD,
+				   TFP410_CTL1_PD);
+	else
+		gpiod_set_value_cansleep(dvi->powerdown, 0);
 }
 
 static void tfp410_disable(struct drm_bridge *bridge)
 {
 	struct tfp410 *dvi = drm_bridge_to_tfp410(bridge);
 
-	gpiod_set_value_cansleep(dvi->powerdown, 1);
+	if (dvi->i2c)
+		regmap_update_bits(dvi->regmap, TFP410_CTL1, TFP410_CTL1_PD, 0);
+	else
+		gpiod_set_value_cansleep(dvi->powerdown, 1);
 }
 
 static enum drm_mode_status tfp410_mode_valid(struct drm_bridge *bridge,
@@ -259,24 +335,18 @@ static const struct drm_bridge_timings tfp410_default_timings = {
 	.hold_time_ps = 1300,
 };
 
-static int tfp410_parse_timings(struct tfp410 *dvi, bool i2c)
+static int tfp410_parse_timings(struct tfp410 *dvi)
 {
 	struct drm_bridge_timings *timings = &dvi->timings;
 	struct device_node *ep;
 	u32 pclk_sample = 0;
 	u32 bus_width = 24;
 	u32 deskew = 0;
+	u32 ctl1 = TFP410_CTL1_VEN | TFP410_CTL1_HEN;
+	u32 ctl3 = TFP410_CTL3_DKEN;
 
 	/* Start with defaults. */
 	*timings = tfp410_default_timings;
-
-	if (i2c)
-		/*
-		 * In I2C mode timings are configured through the I2C interface.
-		 * As the driver doesn't support I2C configuration yet, we just
-		 * go with the defaults (BSEL=1, DSEL=1, DKEN=0, EDGE=1).
-		 */
-		return 0;
 
 	/*
 	 * In non-I2C mode, timings are configured through the BSEL, DSEL, DKEN
@@ -302,6 +372,7 @@ static int tfp410_parse_timings(struct tfp410 *dvi, bool i2c)
 	case 1:
 		timings->input_bus_flags |= DRM_BUS_FLAG_PIXDATA_SAMPLE_POSEDGE
 					 |  DRM_BUS_FLAG_SYNC_SAMPLE_POSEDGE;
+		ctl1 |= TFP410_CTL1_EDGE;
 		break;
 	default:
 		return -EINVAL;
@@ -313,6 +384,7 @@ static int tfp410_parse_timings(struct tfp410 *dvi, bool i2c)
 		break;
 	case 24:
 		dvi->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+		ctl1 |= TFP410_CTL1_BSEL;
 		break;
 	default:
 		return -EINVAL;
@@ -325,11 +397,68 @@ static int tfp410_parse_timings(struct tfp410 *dvi, bool i2c)
 
 	timings->setup_time_ps = 1200 - 350 * ((s32)deskew - 4);
 	timings->hold_time_ps = max(0, 1300 + 350 * ((s32)deskew - 4));
+	ctl3 |= TFP410_CTL3_DK(deskew);
+
+	if (dvi->i2c) {
+		regmap_write(dvi->regmap, TFP410_CTL1, ctl1);
+		regmap_write(dvi->regmap, TFP410_CTL3, ctl3);
+	}
 
 	return 0;
 }
 
-static int tfp410_init(struct device *dev, bool i2c)
+static const struct regmap_range tfp410_wr_ranges[] = {
+	{ .range_min = 0x08, .range_max = 0x0a },
+	{ .range_min = 0x0c, .range_max = 0x39 },
+};
+
+static const struct regmap_access_table tfp410_wr_table = {
+	.yes_ranges	= tfp410_wr_ranges,
+	.n_yes_ranges	= ARRAY_SIZE(tfp410_wr_ranges),
+};
+
+static const struct regmap_range tfp410_volatile_ranges[] = {
+	{ .range_min = 0x09, .range_max = 0x09 },
+	{ .range_min = 0x0b, .range_max = 0x0b },
+	{ .range_min = 0x3b, .range_max = 0x3d },
+};
+
+static const struct regmap_access_table tfp410_volatile_table = {
+	.yes_ranges	= tfp410_volatile_ranges,
+	.n_yes_ranges	= ARRAY_SIZE(tfp410_volatile_ranges),
+};
+
+static const struct regmap_config tfp410_regmap_config = {
+	.reg_bits	= 8,
+	.val_bits	= 8,
+	.max_register	= 0x3d,
+	.wr_table	= &tfp410_wr_table,
+	.volatile_table	= &tfp410_volatile_table,
+	.cache_type	= REGCACHE_FLAT,
+};
+
+static irqreturn_t tfp410_interrupt(int irq, void *data)
+{
+	struct tfp410 *dvi = data;
+	unsigned int ctl2;
+
+	regmap_read(dvi->regmap, TFP410_CTL2, &ctl2);
+	regmap_write(dvi->regmap, TFP410_CTL2, ctl2 | TFP410_CTL2_MDI);
+
+	if (ctl2 & TFP410_CTL2_MDI)
+		return IRQ_HANDLED;
+
+	if (!dvi->bridge.dev)
+		return IRQ_HANDLED;
+
+	drm_helper_hpd_irq_event(dvi->bridge.dev);
+	drm_bridge_hpd_notify(&dvi->bridge, ctl2 & TFP410_CTL2_HTPLG ?
+		connector_status_connected : connector_status_disconnected);
+
+	return IRQ_HANDLED;
+}
+
+static int tfp410_init(struct device *dev, struct i2c_client *i2c)
 {
 	struct device_node *node;
 	struct tfp410 *dvi;
@@ -345,16 +474,8 @@ static int tfp410_init(struct device *dev, bool i2c)
 		return -ENOMEM;
 
 	dvi->dev = dev;
+	dvi->i2c = i2c;
 	dev_set_drvdata(dev, dvi);
-
-	dvi->bridge.funcs = &tfp410_bridge_funcs;
-	dvi->bridge.of_node = dev->of_node;
-	dvi->bridge.timings = &dvi->timings;
-	dvi->bridge.type = DRM_MODE_CONNECTOR_DVID;
-
-	ret = tfp410_parse_timings(dvi, i2c);
-	if (ret)
-		return ret;
 
 	/* Get the next bridge, connected to port@1. */
 	node = of_graph_get_remote_node(dev->of_node, 1, -1);
@@ -375,6 +496,45 @@ static int tfp410_init(struct device *dev, bool i2c)
 		return PTR_ERR(dvi->powerdown);
 	}
 
+	/* Get the reset/isel GPIO. */
+	dvi->reset = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	if (IS_ERR(dvi->reset)) {
+		dev_err(dev, "failed to parse reset gpio\n");
+		return PTR_ERR(dvi->reset);
+	}
+
+	if (dvi->i2c) {
+		dvi->regmap = devm_regmap_init_i2c(dvi->i2c,
+						   &tfp410_regmap_config);
+		if (IS_ERR(dvi->regmap))
+			return PTR_ERR(dvi->regmap);
+
+		/* The datasheet does not specify a reset duration. */
+		udelay(100);
+		gpiod_set_value_cansleep(dvi->reset, 0);
+	}
+
+	if (dvi->i2c && dvi->i2c->irq > 0) {
+		regmap_write(dvi->regmap, TFP410_CTL2,
+			     TFP410_CTL2_MSEL_MDI |
+			     TFP410_CTL2_TSEL |
+			     TFP410_CTL2_MDI);
+
+		ret = devm_request_threaded_irq(dev, dvi->i2c->irq, NULL,
+			tfp410_interrupt, IRQF_ONESHOT, dev_name(dev), dvi);
+		if (ret)
+			return ret;
+	}
+
+	dvi->bridge.funcs = &tfp410_bridge_funcs;
+	dvi->bridge.of_node = dev->of_node;
+	dvi->bridge.timings = &dvi->timings;
+	dvi->bridge.type = DRM_MODE_CONNECTOR_DVID;
+
+	ret = tfp410_parse_timings(dvi);
+	if (ret)
+		return ret;
+
 	/*  Register the DRM bridge. */
 	drm_bridge_add(&dvi->bridge);
 
@@ -390,7 +550,7 @@ static void tfp410_fini(struct device *dev)
 
 static int tfp410_probe(struct platform_device *pdev)
 {
-	return tfp410_init(&pdev->dev, false);
+	return tfp410_init(&pdev->dev, NULL);
 }
 
 static void tfp410_remove(struct platform_device *pdev)
@@ -426,7 +586,7 @@ static int tfp410_i2c_probe(struct i2c_client *client)
 		return -ENXIO;
 	}
 
-	return tfp410_init(&client->dev, true);
+	return tfp410_init(&client->dev, client);
 }
 
 static void tfp410_i2c_remove(struct i2c_client *client)
