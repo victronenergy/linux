@@ -130,6 +130,18 @@
 		states = <1800000 0x0>,
 			 <3300000 0x1>;
 	};
+
+	timer4_pwm: pwm {
+		compatible = "ti,omap-dmtimer-pwm";
+		ti,timers = <&main_timer4>;
+		#pwm-cells = <3>;
+	};
+
+	ethphy_clk: ethphy-clk {
+		compatible = "pwm-clock";
+		#clock-cells = <0>;
+		pwms = <&timer4_pwm 0 20 0>;			  /* 50 MHz */
+	};
 };
 
 &a53_opp_table {
@@ -349,6 +361,12 @@
 			AM62X_IOPAD(0x01a8, PIN_OUTPUT, 7)	  /* D20 */
 		>;
 	};
+
+	main_timer4_pins: main-timer4-pins {
+		pinctrl-single,pins = <
+			AM62X_IOPAD(0x01f0, PIN_OUTPUT, 4)	  /* A18 */
+		>;
+	};
 };
 
 &mcu_pmx0 {
@@ -364,6 +382,13 @@
 			AM62X_IOPAD(0x0000, PIN_OUTPUT, 7)	  /* A7 */
 		>;
 	};
+};
+
+&main_timer4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&main_timer4_pins>;
+	assigned-clocks = <&k3_clks 40 2>;
+	assigned-clock-parents = <&k3_clks 40 5>;
 };
 
 &main_uart0 {
@@ -583,8 +608,6 @@
 &cpsw3g_mdio {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mdio_pins>;
-	assigned-clocks = <&k3_clks 157 20>;
-	assigned-clock-parents = <&k3_clks 157 21>;
 	status = "okay";
 };
 

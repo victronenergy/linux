@@ -101,7 +101,6 @@
 	ethphy_pins: ethphy-pins {
 		pinctrl-single,pins = <
 			AM62X_IOPAD(0x019c, PIN_OUTPUT, 7)	  /* B18 */
-			AM62X_IOPAD(0x01f0, PIN_OUTPUT, 5)	  /* A18 */
 		>;
 	};
 
@@ -287,7 +286,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&ethphy_pins>;
 		reg = <0>;
-		clocks = <&k3_clks 157 20>;
+		clocks = <&ethphy_clk>;
 		reset-gpios = <&main_gpio1 9 GPIO_ACTIVE_LOW>;
 		reset-assert-us = <10000>;
 		reset-deassert-us = <10000>;
