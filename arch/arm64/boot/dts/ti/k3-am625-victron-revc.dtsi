@@ -1,0 +1,23 @@
+#include "k3-am625-victron.dtsi"
+#include "k3-am625-victron-ti-hdmi.dtsi"
+
+/ {
+	compatible = "sancloud,am625-victron-revc",
+		     "sancloud,am625-victron",
+		     "ti,am625";
+};
+
+&sdhci0_pins {
+	pinctrl-single,pins = <
+		AM62X_IOPAD(0x0218, PIN_INPUT, 0)	  /* AB1 */
+		AM62X_IOPAD(0x0220, PIN_INPUT, 0)	  /* Y3  */
+		AM62X_IOPAD(0x0214, PIN_INPUT, 0)	  /* AA2 */
+		AM62X_IOPAD(0x0210, PIN_INPUT_PULLUP, 0)  /* AA1 */
+		AM62X_IOPAD(0x020c, PIN_INPUT_PULLUP, 0)  /* AA3 */
+		AM62X_IOPAD(0x0208, PIN_INPUT_PULLUP, 0)  /* Y4  */
+		AM62X_IOPAD(0x0204, PIN_INPUT_PULLUP, 0)  /* AB2 */
+		AM62X_IOPAD(0x0200, PIN_INPUT_PULLUP, 0)  /* AC1 */
+		AM62X_IOPAD(0x01fc, PIN_INPUT_PULLUP, 0)  /* AD2 */
+		AM62X_IOPAD(0x01f8, PIN_INPUT_PULLUP, 0)  /* AC2 */
+	>;
+};

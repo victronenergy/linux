@@ -1,0 +1,16 @@
+/dts-v1/;
+
+#include "k3-am625-victron-revc.dtsi"
+#include "k3-am625-cerbo-b1x.dtsi"
+#include "k3-am625-cerbo-iob4.dtsi"
+
+/ {
+	compatible = "victronenergy,cerbo-gx-b12a-b4",
+		     "sancloud,am625-victron-revc",
+		     "sancloud,am625-victron",
+		     "ti,am625";
+};
+
+&usr_button {
+	gpios = <&main_gpio0 18 GPIO_ACTIVE_LOW>;
+};
