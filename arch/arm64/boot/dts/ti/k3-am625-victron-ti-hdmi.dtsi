@@ -1,0 +1,45 @@
+&main_pmx0 {
+	hdmi_pins: hdmi-pins {
+		pinctrl-single,pins = <
+			AM62X_IOPAD(0x0054, PIN_OUTPUT, 7)	  /* P21 */
+			AM62X_IOPAD(0x0094, PIN_INPUT, 7)	  /* N20 */
+			AM62X_IOPAD(0x00ac, PIN_OUTPUT, 7)	  /* L21 */
+		>;
+	};
+};
+
+&main_i2c0 {
+	hdmi: hdmi_bridge@38 {
+		compatible = "ti,tfp410";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hdmi_pins>;
+		reg = <0x38>;
+		powerdown-gpios = <&main_gpio0 42 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&main_gpio0 21 GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&main_gpio0>;
+		interrupts = <36 IRQ_TYPE_EDGE_FALLING>;
+		ti,deskew = <4>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				hdmi_in: endpoint {
+					remote-endpoint = <&dss_out>;
+					pclk-sample = <1>;
+					bus-width = <24>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				hdmi_out: endpoint {
+				};
+			};
+		};
+	};
+};
