@@ -498,6 +498,7 @@
 		reg = <0x48>;
 		label = "ram_temp";
 		vs-supply = <&vdd_3v3>;
+		status = "disabled";			/* not populated */
 	};
 
 	som_eeprom: eeprom@50 {
