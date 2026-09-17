@@ -10,6 +10,7 @@
 #include <linux/firmware.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include <drm/drm_connector.h>
 #include <drm/drm_drv.h>
@@ -53,13 +54,12 @@ static const struct drm_edid *edid_load(struct drm_connector *connector, const c
 	return drm_edid;
 }
 
-const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
+static const char *get_edidname(struct drm_connector *connector)
 {
 	char *edidname, *last, *colon, *fwstr, *edidstr, *fallback = NULL;
-	const struct drm_edid *drm_edid;
 
 	if (edid_firmware[0] == '\0')
-		return ERR_PTR(-ENOENT);
+		return NULL;
 
 	/*
 	 * If there are multiple edid files specified and separated
@@ -90,7 +90,7 @@ const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
 	if (!edidname) {
 		if (!fallback) {
 			kfree(fwstr);
-			return ERR_PTR(-ENOENT);
+			return NULL;
 		}
 		edidname = fallback;
 	}
@@ -99,9 +99,27 @@ const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
 	if (*last == '\n')
 		*last = '\0';
 
-	drm_edid = edid_load(connector, edidname);
-
 	kfree(fwstr);
 
-	return drm_edid;
+	return edidname;
+}
+
+const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
+{
+	const char *edidname;
+	int ret;
+
+	edidname = get_edidname(connector);
+
+	if (!edidname && connector->fwnode) {
+		ret = fwnode_property_read_string(connector->fwnode,
+						  "edid-firmware", &edidname);
+		if (ret)
+			return ERR_PTR(ret);
+	}
+
+	if (!edidname)
+		return ERR_PTR(-ENOENT);
+
+	return edid_load(connector, edidname);
 }
