@@ -10,6 +10,7 @@
 #include <linux/firmware.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include <drm/drm_connector.h>
 #include <drm/drm_drv.h>
@@ -53,7 +54,7 @@ static const struct drm_edid *edid_load(struct drm_connector *connector, const c
 	return drm_edid;
 }
 
-const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
+static const struct drm_edid *edid_load_param(struct drm_connector *connector)
 {
 	char *edidname, *last, *colon, *fwstr, *edidstr, *fallback = NULL;
 	const struct drm_edid *drm_edid;
@@ -104,4 +105,26 @@ const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
 	kfree(fwstr);
 
 	return drm_edid;
+}
+
+const struct drm_edid *drm_edid_load_firmware(struct drm_connector *connector)
+{
+	const struct drm_edid *drm_edid;
+	const char *edidname;
+	int ret;
+
+	drm_edid = edid_load_param(connector);
+	if (!IS_ERR(drm_edid))
+		return drm_edid;
+
+	if (connector->fwnode) {
+		ret = fwnode_property_read_string(connector->fwnode,
+						  "edid-firmware", &edidname);
+		if (ret)
+			return ERR_PTR(ret);
+
+		return edid_load(connector, edidname);
+	}
+
+	return ERR_PTR(-ENOENT);
 }
