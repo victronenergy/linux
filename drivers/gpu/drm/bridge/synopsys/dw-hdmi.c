@@ -2454,13 +2454,15 @@ static enum drm_connector_status dw_hdmi_detect(struct dw_hdmi *hdmi)
 static const struct drm_edid *dw_hdmi_edid_read(struct dw_hdmi *hdmi,
 						struct drm_connector *connector)
 {
-	const struct drm_edid *drm_edid;
+	const struct drm_edid *drm_edid = NULL;
 	const struct edid *edid;
 
-	if (!hdmi->ddc)
-		return NULL;
+	if (hdmi->next_bridge)
+		drm_edid = drm_bridge_edid_read(hdmi->next_bridge, connector);
 
-	drm_edid = drm_edid_read_ddc(connector, hdmi->ddc);
+	if (!drm_edid && hdmi->ddc)
+		drm_edid = drm_edid_read_ddc(connector, hdmi->ddc);
+
 	if (!drm_edid) {
 		dev_dbg(hdmi->dev, "failed to get edid\n");
 		return NULL;
