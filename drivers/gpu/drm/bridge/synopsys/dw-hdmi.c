@@ -16,6 +16,7 @@
 #include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/property.h>
 #include <linux/regmap.h>
 #include <linux/dma-mapping.h>
 #include <linux/spinlock.h>
@@ -2570,6 +2571,7 @@ static int dw_hdmi_connector_create(struct dw_hdmi *hdmi)
 	struct drm_connector *connector = &hdmi->connector;
 	struct cec_connector_info conn_info;
 	struct cec_notifier *notifier;
+	struct device_node *of_node;
 
 	if (hdmi->version >= 0x200a)
 		connector->ycbcr_420_allowed =
@@ -2579,6 +2581,13 @@ static int dw_hdmi_connector_create(struct dw_hdmi *hdmi)
 
 	connector->interlace_allowed = 1;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
+
+	if (hdmi->next_bridge && hdmi->next_bridge->of_node)
+		of_node = hdmi->next_bridge->of_node;
+	else
+		of_node = hdmi->bridge.of_node;
+
+	connector->fwnode = fwnode_handle_get(of_fwnode_handle(of_node));
 
 	drm_connector_helper_add(connector, &dw_hdmi_connector_helper_funcs);
 
