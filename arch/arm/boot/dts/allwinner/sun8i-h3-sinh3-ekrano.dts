@@ -40,6 +40,7 @@
 		compatible = "hdmi-connector";
 		type = "a";
 		ddc-i2c-bus = <&i2c1>;
+		edid-firmware = "EDID_Ekrano_GX_rev_A6_48M.bin";
 
 		port {
 			hdmi_con_in: endpoint {
