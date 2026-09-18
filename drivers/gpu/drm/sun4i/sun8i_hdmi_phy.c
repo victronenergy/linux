@@ -538,14 +538,12 @@ int sun8i_hdmi_phy_init(struct sun8i_hdmi_phy *phy)
 	}
 
 	if (phy->variant->has_phy_clk) {
-		ret = sun8i_phy_clk_create(phy, phy->dev,
-					   phy->variant->has_second_pll);
+		ret = clk_prepare_enable(phy->clk_phy);
 		if (ret) {
-			dev_err(phy->dev, "Couldn't create the PHY clock\n");
+			dev_err(phy->dev, "Cannot enable PHY clock: %d\n", ret);
 			goto err_disable_clk_mod;
 		}
 
-		clk_prepare_enable(phy->clk_phy);
 	}
 
 	phy->variant->phy_init(phy);
@@ -676,6 +674,7 @@ static int sun8i_hdmi_phy_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct sun8i_hdmi_phy *phy;
 	void __iomem *regs;
+	int ret;
 
 	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
 	if (!phy)
@@ -717,6 +716,11 @@ static int sun8i_hdmi_phy_probe(struct platform_device *pdev)
 				return dev_err_probe(dev, PTR_ERR(phy->clk_pll1),
 						     "Could not get pll-1 clock\n");
 		}
+
+		ret = sun8i_phy_clk_create(phy, dev,
+					   phy->variant->has_second_pll);
+		if (ret)
+			return dev_err_probe(dev, ret, "Couldn't create the PHY clock\n");
 	}
 
 	phy->rst_phy = devm_reset_control_get_shared(dev, "phy");
