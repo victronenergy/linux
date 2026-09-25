@@ -39,12 +39,20 @@ config VENUS
 	select STACKPROTECTOR
 	select STACKPROTECTOR_STRONG
 	select STACKPROTECTOR_PER_TASK if SMP
+	select SECCOMP
 
 	# cgroups
 	select CGROUPS
 	select CGROUP_CPUACCT
 	select CGROUP_SCHED
 	select CFS_BANDWIDTH
+	select CPUSETS
+	select MEMCG
+	select BLK_CGROUP
+	select CGROUP_PIDS
+	select CGROUP_DEVICE
+	select CGROUP_FREEZER
+	select CGROUP_BPF
 
 	# system options
 	select VDSO
@@ -259,6 +267,10 @@ config VENUS_MODULES
 	select IP6_NF_MANGLE
 	select IP6_NF_NAT
 	select IP6_NF_TARGET_REJECT
+
+	# container networking
+	select BRIDGE
+	select VETH
 
 	# canbus
 	select CAN
